@@ -1,0 +1,42 @@
+{
+  "name": "toneline",
+  "version": "0.1.0",
+  "private": true,
+  "description": "One call locate ticket handling for underground facility operators",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./package.json": "./package.json"
+  },
+  "main": "./src/index.js",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "bin": {
+    "toneline": "./bin/toneline.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "examples/",
+    "README.md"
+  ],
+  "scripts": {
+    "coverage": "vitest run --coverage",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "commander": "13.1.0"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "3.0.5",
+    "eslint": "9.20.1",
+    "globals": "15.15.0",
+    "prettier": "3.5.1",
+    "vitest": "3.0.5"
+  }
+}
