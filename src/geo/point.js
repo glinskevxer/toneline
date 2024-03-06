@@ -12,6 +12,13 @@ import { TonelineError } from '../core/errors.js';
 const EARTH_RADIUS_M = 6371008.8;
 const FEET_PER_METRE = 3.280839895013123;
 
+/**
+ * Metres in one degree of latitude on the same sphere the distance formulas
+ * use. Every flat projection in the library scales from this, so a local
+ * approximation and a great circle measurement agree to a few millimetres.
+ */
+export const METRES_PER_DEGREE_LAT = (EARTH_RADIUS_M * Math.PI) / 180;
+
 /** Raised when coordinates or a shape cannot be used. */
 export class GeometryError extends TonelineError {
   constructor(message, details = {}) {

@@ -6,9 +6,7 @@
  * and every facility segment as they are loaded.
  */
 
-import { GeometryError, distanceMetres, point, toPoint } from './point.js';
-
-const METRES_PER_DEGREE_LAT = 111320;
+import { GeometryError, METRES_PER_DEGREE_LAT, distanceMetres, point, toPoint } from './point.js';
 
 /** Build bounds from one or more points. */
 export function boundsOf(points) {
