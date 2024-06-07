@@ -17,7 +17,7 @@ export default [
       reportUnusedDisableDirectives: true,
     },
     rules: {
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_', ignoreRestSiblings: true }],
       'no-console': 'off',
       eqeqeq: ['error', 'always'],
       'prefer-const': 'error',
