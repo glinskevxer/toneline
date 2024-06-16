@@ -113,6 +113,20 @@ export function optionalList(value, field, fallback = []) {
     .filter((entry) => entry !== '');
 }
 
+/**
+ * Reduce a value to the shape a lookup key is stored in.
+ *
+ * Every registry in the library is keyed by an upper case code, and every
+ * caller has its own idea of how much whitespace and punctuation to leave on,
+ * so the reduction lives here rather than being retyped at each lookup.
+ */
+export function normaliseCode(value, { separator = null } = {}) {
+  const text = String(value ?? '')
+    .trim()
+    .toUpperCase();
+  return separator === null ? text : text.replace(/[\s-]+/g, separator);
+}
+
 /** Freeze an object and everything reachable from it. */
 export function deepFreeze(value) {
   if (value === null || typeof value !== 'object' || Object.isFrozen(value)) return value;

@@ -15,6 +15,7 @@ import {
   optionalList,
   deepFreeze,
   compact,
+  normaliseCode,
 } from '../../src/core/fields.js';
 
 describe('isBlank', () => {
@@ -142,5 +143,26 @@ describe('object helpers', () => {
 
   it('drops empty keys', () => {
     expect(compact({ a: 1, b: null, c: undefined, d: 0, e: '' })).toEqual({ a: 1, d: 0, e: '' });
+  });
+});
+
+describe('normaliseCode', () => {
+  it('trims and upper cases', () => {
+    expect(normaliseCode('  gas ')).toBe('GAS');
+  });
+
+  it('reads nothing as an empty key', () => {
+    expect(normaliseCode(null)).toBe('');
+    expect(normaliseCode(undefined)).toBe('');
+  });
+
+  it('collapses spacing onto a separator when asked', () => {
+    expect(normaliseCode('in progress', { separator: '_' })).toBe('IN_PROGRESS');
+    expect(normaliseCode('part-marked', { separator: '_' })).toBe('PART_MARKED');
+    expect(normaliseCode('no  facilities', { separator: '_' })).toBe('NO_FACILITIES');
+  });
+
+  it('leaves the spacing alone by default', () => {
+    expect(normaliseCode('in progress')).toBe('IN PROGRESS');
   });
 });

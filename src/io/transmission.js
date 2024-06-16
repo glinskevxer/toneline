@@ -9,6 +9,7 @@
  */
 
 import { FeedParseError } from '../core/errors.js';
+import { optionalBoolean } from '../core/fields.js';
 
 const LABEL_SCAN = /(?:^|\s{2,})([A-Z][A-Z0-9 /]{0,24}?):(?=\s|$)/g;
 const BLOCK_SEPARATOR = /^[=]{3,}\s*$/;
@@ -136,9 +137,9 @@ export function listField(parsed, label) {
 /** Read a field as a yes or no flag. */
 export function flagField(parsed, label, fallback = false) {
   const value = field(parsed, label);
-  if (value === null) return fallback;
-  const upper = value.trim().toUpperCase();
-  if (['Y', 'YES', 'TRUE', '1'].includes(upper)) return true;
-  if (['N', 'NO', 'FALSE', '0'].includes(upper)) return false;
-  throw new FeedParseError('transmission flag is neither yes nor no', { label, value });
+  try {
+    return optionalBoolean(value, label, fallback);
+  } catch {
+    throw new FeedParseError('transmission flag is neither yes nor no', { label, value });
+  }
 }

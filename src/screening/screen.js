@@ -10,7 +10,7 @@
 import { deepFreeze } from '../core/fields.js';
 import { districtsForRing, isOurMember } from '../network/district.js';
 import { toleranceFeetOf, toleranceMetresOf } from '../network/facility.js';
-import { metresToFeet } from '../geo/point.js';
+import { feetToMetres, metresToFeet } from '../geo/point.js';
 import { facilityType } from '../ticket/types.js';
 import { workAreaFor } from '../ticket/site.js';
 
@@ -60,7 +60,7 @@ export function screenTicket(
   const inDistricts = districtsForRing(districts, area.ring).map((district) => district.code);
   const ours = memberClaimed || inDistricts.length > 0 || districts.length === 0;
   const margin = policy.noticeMarginFeet;
-  const found = network.intersecting(area.ring, feetToMetresSafe(margin));
+  const found = network.intersecting(area.ring, feetToMetres(Math.max(0, margin)));
 
   const hits = [];
   for (const { facility, metres } of found) {
@@ -99,11 +99,6 @@ function clearReasonFor({ ours, hits, conflict }) {
   if (hits.length === 0) return 'no facilities';
   if (!conflict) return 'outside tolerance';
   return null;
-}
-
-function feetToMetresSafe(feet) {
-  if (typeof feet !== 'number' || !Number.isFinite(feet) || feet < 0) return 0;
-  return feet / 3.280839895013123;
 }
 
 /** Screen a run of tickets, keeping the results in the order given. */

@@ -8,6 +8,7 @@
  */
 
 import { TonelineError } from '../core/errors.js';
+import { normaliseCode } from '../core/fields.js';
 
 /** Raised when a response code or a posting cannot be used. */
 export class ResponseError extends TonelineError {
@@ -129,10 +130,8 @@ export const RESPONSE_KEYS = Object.freeze(RESPONSE_LIST.map((entry) => entry.ke
 
 /** Look a response up by its centre code or by its key. */
 export function responseCode(value) {
-  const text = String(value ?? '')
-    .trim()
-    .toUpperCase();
-  const found = BY_CODE.get(text) ?? BY_KEY.get(text.replace(/[\s-]+/g, '_'));
+  const found =
+    BY_CODE.get(normaliseCode(value)) ?? BY_KEY.get(normaliseCode(value, { separator: '_' }));
   if (!found) {
     throw new ResponseError('response code is not one the centre accepts', {
       value,

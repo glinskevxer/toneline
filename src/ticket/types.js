@@ -7,6 +7,7 @@
  */
 
 import { TicketError } from '../core/errors.js';
+import { normaliseCode } from '../core/fields.js';
 
 /**
  * @typedef {object} TicketType
@@ -120,10 +121,7 @@ export const TICKET_TYPE_CODES = Object.freeze(TICKET_TYPE_LIST.map((type) => ty
 
 /** Look a ticket type up, throwing when it is not one we handle. */
 export function ticketType(code) {
-  const key = String(code ?? '')
-    .trim()
-    .toUpperCase();
-  const found = TICKET_TYPES.get(key);
+  const found = TICKET_TYPES.get(normaliseCode(code));
   if (!found) {
     throw new TicketError('ticket type is not one this desk handles', {
       code,
@@ -135,11 +133,7 @@ export function ticketType(code) {
 
 /** True when the code names a ticket type. */
 export function isTicketType(code) {
-  return TICKET_TYPES.has(
-    String(code ?? '')
-      .trim()
-      .toUpperCase()
-  );
+  return TICKET_TYPES.has(normaliseCode(code));
 }
 
 /** Ticket types that put a locator on the ground. */
@@ -173,10 +167,7 @@ export const FACILITY_TYPE_CODES = Object.freeze(FACILITY_TYPE_LIST.map((type) =
 
 /** Look a facility type up, throwing when it is unknown. */
 export function facilityType(code) {
-  const key = String(code ?? '')
-    .trim()
-    .toUpperCase();
-  const found = FACILITY_TYPES.get(key);
+  const found = FACILITY_TYPES.get(normaliseCode(code));
   if (!found) {
     throw new TicketError('facility type is not one this operator carries', {
       code,
@@ -188,11 +179,7 @@ export function facilityType(code) {
 
 /** True when the code names a facility type. */
 export function isFacilityType(code) {
-  return FACILITY_TYPES.has(
-    String(code ?? '')
-      .trim()
-      .toUpperCase()
-  );
+  return FACILITY_TYPES.has(normaliseCode(code));
 }
 
 /** Facility types whose damage is reportable to the regulator. */
@@ -214,10 +201,7 @@ export const TICKET_STATUSES = Object.freeze([
 
 /** Normalise a status, throwing when it is not one of ours. */
 export function ticketStatus(value) {
-  const key = String(value ?? '')
-    .trim()
-    .toUpperCase()
-    .replace(/[\s-]+/g, '_');
+  const key = normaliseCode(value, { separator: '_' });
   if (!TICKET_STATUSES.includes(key)) {
     throw new TicketError('ticket status is not one this desk uses', {
       value,
