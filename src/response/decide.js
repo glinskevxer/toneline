@@ -44,11 +44,14 @@ export function recommendResponse(ticket, screening, options = {}) {
   if (definition.code === 'MEET') {
     return decision('4', 'the excavator asked for a meet');
   }
+  // A ticket type that puts nobody on the ground is settled before the critical
+  // check, because a design request is answered with records at a meet whatever
+  // is buried in the corridor, and marking it would be the wrong answer twice.
+  if (!definition.requiresMarking) {
+    return decision('4', 'a design request is answered with records rather than marks');
+  }
   if (meetOnCritical && inTolerance.some((hit) => hit.critical)) {
     return decision('7', 'a critical facility runs through the work area');
-  }
-  if (!definition.requiresMarking) {
-    return decision('1', 'the ticket type does not call for marks on the ground');
   }
   return decision('2', 'our facilities in the work area have been marked');
 }

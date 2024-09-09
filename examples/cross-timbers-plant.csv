@@ -1,0 +1,11 @@
+id,type,member,district,path,depth_ft,diameter_in,material,abandoned,high_consequence,installed_on,tolerance_ft,note
+GM-4412,gas,CTG01,CENTRAL,35.4676 -97.5164;35.4676 -97.5120,3.5,4,steel,N,N,1998-06-02,,main down the north side of 23rd
+GM-4413,gas,CTG01,CENTRAL,35.4676 -97.5120;35.4676 -97.5080,3.5,4,steel,N,N,1998-06-02,,
+GM-5001,gas,CTG01,CENTRAL,35.4700 -97.5164;35.4740 -97.5164,4,8,steel,N,Y,1974-09-14,36,transmission feed to the north gate station
+GM-5002,gas,CTG01,NORTH,35.4740 -97.5164;35.4900 -97.5164,4,8,steel,N,Y,1974-09-14,36,
+WT-2210,water,CTG02,CENTRAL,35.4674 -97.5164;35.4674 -97.5080,5,8,ductile iron,N,N,1986-04-21,,
+WT-2211,water,CTG02,CENTRAL,35.4674 -97.5080;35.4674 -97.5000,5,8,ductile iron,N,N,1986-04-21,,
+WT-1902,water,CTG02,CENTRAL,35.46753 -97.5164;35.46753 -97.5120,4,4,cast iron,Y,N,1948-03-02,,abandoned in place when 2210 went in
+GM-6100,gas,CTG01,NORTH,35.5000 -97.5300;35.5000 -97.5200,3,2,polyethylene,N,N,2011-08-30,,
+WT-3300,water,CTG02,NORTH,35.5100 -97.5300;35.5100 -97.5200,6,12,ductile iron,N,N,2003-05-11,,
+GM-7000,gas,CTG01,CENTRAL,35.4500 -97.5300;35.4500 -97.5200,3.5,4,steel,N,N,1995-01-19,,

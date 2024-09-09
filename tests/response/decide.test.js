@@ -113,8 +113,17 @@ describe('recommendResponse', () => {
       ticket({ type: 'DESIGN' }),
       screening({ hits: [hit({ critical: false })] })
     );
-    expect(result.code).toBe('1');
-    expect(result.reason).toMatch(/does not call for marks/);
+    expect(result.code).toBe('4');
+    expect(result.reason).toMatch(/records rather than marks/);
+  });
+
+  it('answers a design request over critical plant with records, not a meet code', () => {
+    const result = recommendResponse(ticket({ type: 'DESIGN' }), screening({ hits: [hit()] }));
+    expect(result.code).toBe('4');
+  });
+
+  it('still clears a design request with nothing in the corridor', () => {
+    expect(recommendResponse(ticket({ type: 'DESIGN' }), screening()).code).toBe('1');
   });
 
   it('freezes what it returns', () => {

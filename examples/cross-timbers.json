@@ -1,0 +1,84 @@
+{
+  "operator": {
+    "name": "Cross Timbers Gas and Water",
+    "code": "CTG",
+    "contact": "locate desk, 405 555 0100"
+  },
+  "centre": {
+    "name": "Oklahoma One Call",
+    "prefix": "B",
+    "cutoff": "17:00"
+  },
+  "calendar": {
+    "weekend": ["saturday", "sunday"],
+    "holidays": [
+      { "kind": "fixed", "month": 1, "day": 1, "name": "new year", "observed": "nearest-weekday" },
+      { "kind": "nth-weekday", "month": 5, "weekday": "monday", "nth": -1, "name": "memorial day" },
+      {
+        "kind": "fixed",
+        "month": 7,
+        "day": 4,
+        "name": "independence day",
+        "observed": "nearest-weekday"
+      },
+      { "kind": "nth-weekday", "month": 9, "weekday": "monday", "nth": 1, "name": "labour day" },
+      {
+        "kind": "nth-weekday",
+        "month": 11,
+        "weekday": "thursday",
+        "nth": 4,
+        "name": "thanksgiving"
+      },
+      {
+        "kind": "fixed",
+        "month": 12,
+        "day": 25,
+        "name": "christmas",
+        "observed": "nearest-weekday"
+      }
+    ]
+  },
+  "hours": {
+    "monday": { "open": "06:30", "close": "16:30" },
+    "tuesday": { "open": "06:30", "close": "16:30" },
+    "wednesday": { "open": "06:30", "close": "16:30" },
+    "thursday": { "open": "06:30", "close": "16:30" },
+    "friday": { "open": "06:30", "close": "15:30" }
+  },
+  "districts": [
+    {
+      "code": "CENTRAL",
+      "name": "Central Oklahoma City",
+      "members": ["CTG01", "CTG02"],
+      "crew": "crew-a",
+      "contact": "405 555 0111",
+      "afterHoursPhone": "405 555 0199",
+      "boundary": [
+        { "lat": 35.44, "lon": -97.56 },
+        { "lat": 35.48, "lon": -97.56 },
+        { "lat": 35.48, "lon": -97.49 },
+        { "lat": 35.44, "lon": -97.49 }
+      ]
+    },
+    {
+      "code": "NORTH",
+      "name": "North Oklahoma City",
+      "members": ["CTG01"],
+      "crew": "crew-b",
+      "contact": "405 555 0112",
+      "boundary": [
+        { "lat": 35.48, "lon": -97.56 },
+        { "lat": 35.55, "lon": -97.56 },
+        { "lat": 35.55, "lon": -97.49 },
+        { "lat": 35.48, "lon": -97.49 }
+      ]
+    }
+  ],
+  "facilities": "cross-timbers-plant.csv",
+  "policies": {
+    "life": { "defaultLifeDays": 21, "markLifeDays": 14 },
+    "site": { "pointRadiusFeet": 50, "corridorHalfWidthFeet": 25 },
+    "screen": { "noticeMarginFeet": 25 },
+    "clock": { "graceMinutes": 0 }
+  }
+}
