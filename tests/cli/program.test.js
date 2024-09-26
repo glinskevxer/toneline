@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { run } from '../../src/cli/program.js';
 
@@ -108,6 +108,69 @@ describe('the program itself', () => {
 
   it('rejects a command it does not have', async () => {
     const result = await invoke(['nonsense']);
+    expect(result.code).not.toBe(0);
+  });
+});
+
+describe('respond', () => {
+  it('answers the worked feed', async () => {
+    const result = await invoke([
+      'respond',
+      '-c',
+      CONFIG,
+      '-f',
+      FEED,
+      '-a',
+      '2024-03-14T08:00',
+      '-b',
+      'kmartel',
+    ]);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain('answered 4 tickets');
+    expect(result.out).toContain('postings');
+  });
+
+  it('writes the postings out when asked', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'toneline-prog-'));
+    const path = join(dir, 'postings.json');
+    const result = await invoke([
+      'respond',
+      '-c',
+      CONFIG,
+      '-f',
+      FEED,
+      '-a',
+      '2024-03-14T08:00',
+      '-b',
+      'kmartel',
+      '-o',
+      path,
+    ]);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain('wrote');
+    const written = JSON.parse(readFileSync(path, 'utf8'));
+    expect(written.length).toBeGreaterThan(4);
+    expect(written[0].by).toBe('kmartel');
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('refuses a timestamp it cannot read', async () => {
+    const result = await invoke([
+      'respond',
+      '-c',
+      CONFIG,
+      '-f',
+      FEED,
+      '-a',
+      '14 march',
+      '-b',
+      'kmartel',
+    ]);
+    expect(result.code).toBe(1);
+  });
+
+  it('needs to be told who is answering', async () => {
+    const result = await invoke(['respond', '-c', CONFIG, '-f', FEED, '-a', '2024-03-14T08:00']);
     expect(result.code).not.toBe(0);
   });
 });

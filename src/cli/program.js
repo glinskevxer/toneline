@@ -12,6 +12,8 @@ import { screeningContext } from '../config/load.js';
 import { screenTicket } from '../screening/screen.js';
 import { recommendResponse } from '../response/decide.js';
 import { renderPairs, renderTable, joinSections, renderHeading } from '../reporting/table.js';
+import { answerBatch, sessionSummary } from '../response/session.js';
+import { writeJson } from '../io/files.js';
 
 /**
  * Build the program.
@@ -101,6 +103,58 @@ export function buildProgram(options = {}) {
           );
           for (const failure of failures) {
             writers.warn(`block ${failure.block}: ${failure.message}`);
+          }
+          return 0;
+        })
+      );
+    });
+
+  program
+    .command('respond')
+    .description('answer a feed and write the postings out')
+    .requiredOption('-c, --config <path>', 'path to the configuration file')
+    .requiredOption('-f, --feed <path>', 'path to the transmission feed')
+    .requiredOption('-a, --at <stamp>', 'the moment the desk is answering')
+    .requiredOption('-b, --by <who>', 'who is answering')
+    .option('-o, --out <path>', 'write the postings to this file as json')
+    .option('--meet-time <clock>', 'the clock time a meet is offered at', '08:00')
+    .option('--skip-bad', 'carry on past blocks that will not read', false)
+    .action((opts) => {
+      setExit(
+        runCommand(writers, () => {
+          const { desk } = openDesk(opts.config);
+          const { tickets, failures } = readFeed(opts.feed, { skipBad: opts.skipBad });
+          const session = answerBatch(tickets, {
+            desk,
+            at: opts.at,
+            by: opts.by,
+            meetTime: opts.meetTime,
+          });
+          const summary = sessionSummary(session);
+          writers.write(
+            joinSections([
+              renderHeading(`answered ${summary.tickets} tickets`),
+              renderPairs({
+                postings: summary.postings,
+                conflicts: summary.conflicts,
+                held: summary.held,
+              }),
+              renderTable(
+                Object.entries(summary.codes).map(([code, count]) => ({ code, count })),
+                [
+                  { key: 'code', align: 'right' },
+                  { key: 'count', align: 'right' },
+                ]
+              ),
+            ])
+          );
+          for (const entry of session.held) writers.warn(`held ${entry.number}: ${entry.reason}`);
+          for (const failure of failures) {
+            writers.warn(`block ${failure.block}: ${failure.message}`);
+          }
+          if (opts.out) {
+            const path = writeJson(opts.out, session.postings);
+            writers.line(`wrote ${session.postings.length} postings to ${path}`);
           }
           return 0;
         })

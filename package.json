@@ -26,8 +26,11 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
+    "respond": "node bin/toneline.js respond -c examples/cross-timbers.json -f examples/march-2024.feed -a 2024-03-14T08:00 -b desk",
+    "screen": "node bin/toneline.js screen -c examples/cross-timbers.json -f examples/march-2024.feed",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "validate": "node bin/toneline.js validate -c examples/cross-timbers.json --strict"
   },
   "dependencies": {
     "commander": "13.1.0"
