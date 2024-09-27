@@ -123,3 +123,15 @@ describe('formatEntry', () => {
     );
   });
 });
+
+describe('the data bag on the way back in', () => {
+  it('keeps a null bag null rather than turning it into an empty object', () => {
+    const once = auditEntry(ENTRY);
+    expect(auditEntry({ ...once }).data).toBeNull();
+  });
+
+  it('round trips a bag that has something in it', () => {
+    const once = auditEntry({ ...ENTRY, data: { hits: 2 } });
+    expect(auditEntry({ ...once }).data).toEqual({ hits: 2 });
+  });
+});

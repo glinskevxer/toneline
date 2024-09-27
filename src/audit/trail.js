@@ -32,7 +32,7 @@ export function auditEntry(raw) {
     action: requireString(raw.action, 'action').toLowerCase(),
     by: requireString(raw.by, 'by'),
     detail: optionalString(raw.detail, 'detail'),
-    data: raw.data === undefined ? null : deepFreeze({ ...raw.data }),
+    data: raw.data === undefined || raw.data === null ? null : deepFreeze({ ...raw.data }),
   });
 }
 
