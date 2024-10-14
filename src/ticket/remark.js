@@ -81,10 +81,18 @@ function verdict(allowed, reason, chargeable, sequence) {
   return deepFreeze({ allowed, reason, chargeable, sequence });
 }
 
-/** The date the refreshed marks are good through. */
-export function remarkMarksThrough(request, args = {}) {
-  const { policy = DEFAULT_REMARK_POLICY, markLifeDays = 14 } = args;
-  void policy;
+/**
+ * The date the refreshed marks are good through.
+ *
+ * The clock starts again from the day the remark was asked for, not from the
+ * original marking, which is the whole point of asking for one.
+ */
+export function remarkMarksThrough(request, { markLifeDays = 14 } = {}) {
+  if (!Number.isInteger(markLifeDays) || markLifeDays < 1) {
+    throw new TicketError('mark life must be a whole number of days of one or more', {
+      markLifeDays,
+    });
+  }
   return addDays(dateOf(request.requestedAt), markLifeDays - 1);
 }
 

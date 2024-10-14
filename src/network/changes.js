@@ -77,16 +77,14 @@ export function applyChange(network, change) {
       return network.add(change.facility);
     case 'MOVED':
       requireHeld(held, change);
-      removeFacility(network, change.facilityId);
-      return network.add(change.facility);
+      return network.replace(change.facility);
     case 'ABANDONED': {
       requireHeld(held, change);
-      removeFacility(network, change.facilityId);
-      return network.add(buildFacility({ ...held, abandoned: true }));
+      return network.replace(buildFacility({ ...held, abandoned: true }));
     }
     case 'REMOVED':
       requireHeld(held, change);
-      removeFacility(network, change.facilityId);
+      network.remove(change.facilityId);
       return null;
     default:
       throw new FacilityError('that is not a change the mapping system sends', {
@@ -101,15 +99,6 @@ function requireHeld(held, change) {
       id: change.facilityId,
       kind: change.kind,
     });
-  }
-}
-
-function removeFacility(network, id) {
-  network.facilities.delete(id);
-  for (const [key, bucket] of network.cells) {
-    const kept = bucket.filter((entry) => entry !== id);
-    if (kept.length === 0) network.cells.delete(key);
-    else network.cells.set(key, kept);
   }
 }
 

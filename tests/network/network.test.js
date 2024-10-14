@@ -140,3 +140,42 @@ describe('intersecting', () => {
     expect(wide.length).toBeGreaterThan(tight.length);
   });
 });
+
+describe('remove and replace', () => {
+  it('takes a run out of the index as well as the map', () => {
+    const network = buildNetwork(RECORDS);
+    const removed = network.remove('gm-1');
+    expect(removed.id).toBe('GM-1');
+    expect(network.size).toBe(2);
+    expect(network.get('GM-1')).toBeNull();
+    expect(network.near(destination(A, 150, 90), 20).map((hit) => hit.facility.id)).toEqual([]);
+  });
+
+  it('removes nothing it does not hold', () => {
+    const network = buildNetwork(RECORDS);
+    expect(network.remove('ZZ-9')).toBeNull();
+    expect(network.size).toBe(3);
+  });
+
+  it('swaps a run for a new version of itself', () => {
+    const network = buildNetwork(RECORDS);
+    network.replace({
+      id: 'GM-1',
+      type: 'gas',
+      path: [destination(A, 500, 0), destination(B, 500, 0)],
+    });
+    expect(network.size).toBe(3);
+    expect(network.near(destination(A, 150, 90), 40).map((hit) => hit.facility.id)).toEqual([
+      'EL-1',
+    ]);
+    expect(
+      network.near(destination(destination(A, 500, 0), 150, 90), 20).map((hit) => hit.facility.id)
+    ).toEqual(['GM-1']);
+  });
+
+  it('takes an already built facility to replace with', () => {
+    const network = buildNetwork(RECORDS);
+    const built = buildFacility({ id: 'GM-1', type: 'gas', abandoned: true, path: [A, B] });
+    expect(network.replace(built).abandoned).toBe(true);
+  });
+});

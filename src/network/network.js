@@ -51,6 +51,34 @@ export class FacilityNetwork {
     return facility;
   }
 
+  /**
+   * Take a facility out of the network and out of every grid cell it sits in.
+   *
+   * @returns {object|null} the facility that was removed, or null
+   */
+  remove(id) {
+    const wanted = String(id ?? '').toUpperCase();
+    const held = this.facilities.get(wanted) ?? null;
+    if (held === null) return null;
+    this.facilities.delete(wanted);
+    for (const key of this.cellKeys(facilityBounds(held))) {
+      const bucket = this.cells.get(key);
+      if (!bucket) continue;
+      const kept = bucket.filter((entry) => entry !== wanted);
+      if (kept.length === 0) this.cells.delete(key);
+      else this.cells.set(key, kept);
+    }
+    return held;
+  }
+
+  /** Swap a facility for a new version of itself, keeping the index right. */
+  replace(facility) {
+    const built =
+      facility && facility.path && Object.isFrozen(facility) ? facility : buildFacility(facility);
+    this.remove(built.id);
+    return this.add(built);
+  }
+
   /** Add many facilities at once. */
   addAll(records) {
     return records.map((record) => this.add(record));

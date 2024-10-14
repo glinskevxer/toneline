@@ -188,3 +188,10 @@ describe('remarksFor', () => {
     ]);
   });
 });
+
+describe('remarkMarksThrough guards', () => {
+  it('refuses a mark life of less than a day', () => {
+    expect(() => remarkMarksThrough(request(), { markLifeDays: 0 })).toThrow(TicketError);
+    expect(() => remarkMarksThrough(request(), { markLifeDays: 2.5 })).toThrow(/whole number/);
+  });
+});
