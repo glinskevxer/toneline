@@ -174,3 +174,44 @@ describe('respond', () => {
     expect(result.code).not.toBe(0);
   });
 });
+
+describe('age', () => {
+  it('shows the open work with its buckets', async () => {
+    const result = await invoke(['age', '-c', CONFIG, '-f', FEED, '-a', '2024-03-15T09:00']);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain('open work at 2024-03-15T09:00');
+    expect(result.out).toContain('breached');
+    expect(result.out).toContain('B240313000418');
+  });
+
+  it('refuses a moment it cannot read', async () => {
+    const result = await invoke(['age', '-c', CONFIG, '-f', FEED, '-a', 'now']);
+    expect(result.code).toBe(1);
+  });
+});
+
+describe('queue', () => {
+  it('orders the open work', async () => {
+    const result = await invoke(['queue', '-c', CONFIG, '-f', FEED, '-a', '2024-03-15T09:00']);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain('work queue at 2024-03-15T09:00');
+    expect(result.out).toContain('emergency');
+  });
+
+  it('honours the row limit', async () => {
+    const result = await invoke([
+      'queue',
+      '-c',
+      CONFIG,
+      '-f',
+      FEED,
+      '-a',
+      '2024-03-15T09:00',
+      '-n',
+      '1',
+    ]);
+    const body = result.out.split('work queue')[1];
+    const ticketLines = body.split('\n').filter((line) => /^B\d{12}/.test(line));
+    expect(ticketLines).toHaveLength(1);
+  });
+});

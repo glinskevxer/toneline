@@ -14,6 +14,9 @@ import { recommendResponse } from '../response/decide.js';
 import { renderPairs, renderTable, joinSections, renderHeading } from '../reporting/table.js';
 import { answerBatch, sessionSummary } from '../response/session.js';
 import { writeJson } from '../io/files.js';
+import { schedulingContext } from '../config/load.js';
+import { ageTickets, bucketCounts, openTickets } from '../reporting/aging.js';
+import { bandCounts, orderQueue } from '../ticket/priority.js';
 
 /**
  * Build the program.
@@ -156,6 +159,77 @@ export function buildProgram(options = {}) {
             const path = writeJson(opts.out, session.postings);
             writers.line(`wrote ${session.postings.length} postings to ${path}`);
           }
+          return 0;
+        })
+      );
+    });
+
+  program
+    .command('age')
+    .description('show the open work against its response deadlines')
+    .requiredOption('-c, --config <path>', 'path to the configuration file')
+    .requiredOption('-f, --feed <path>', 'path to the transmission feed')
+    .requiredOption('-a, --at <stamp>', 'the moment the screen is drawn')
+    .option('--all', 'include tickets that are already answered or closed', false)
+    .action((opts) => {
+      setExit(
+        runCommand(writers, () => {
+          const { desk } = openDesk(opts.config);
+          const { tickets } = readFeed(opts.feed, { skipBad: true });
+          const wanted = opts.all ? tickets : openTickets(tickets);
+          const rows = ageTickets(wanted, { at: opts.at, ...schedulingContext(desk) });
+          writers.write(
+            joinSections([
+              renderHeading(`open work at ${opts.at}`),
+              renderPairs(bucketCounts(rows)),
+              renderTable(rows, [
+                { key: 'number', label: 'ticket' },
+                { key: 'type' },
+                { key: 'status' },
+                { key: 'dueAt', label: 'due' },
+                { key: 'minutesLeft', label: 'mins left', align: 'right' },
+                { key: 'bucket' },
+              ]),
+            ])
+          );
+          return 0;
+        })
+      );
+    });
+
+  program
+    .command('queue')
+    .description('order the open work the way it should be driven')
+    .requiredOption('-c, --config <path>', 'path to the configuration file')
+    .requiredOption('-f, --feed <path>', 'path to the transmission feed')
+    .requiredOption('-a, --at <stamp>', 'the moment the queue is built')
+    .option('-n, --top <count>', 'how many rows to print', '20')
+    .action((opts) => {
+      setExit(
+        runCommand(writers, () => {
+          const { desk } = openDesk(opts.config);
+          const { tickets } = readFeed(opts.feed, { skipBad: true });
+          const context = screeningContext(desk);
+          const entries = openTickets(tickets).map((ticket) => ({
+            ticket,
+            screening: screenTicket(ticket, context),
+          }));
+          const scored = orderQueue(entries, { at: opts.at, ...schedulingContext(desk) });
+          const top = scored.slice(0, Math.max(0, Number(opts.top) || 0));
+          writers.write(
+            joinSections([
+              renderHeading(`work queue at ${opts.at}`),
+              renderPairs(bandCounts(scored)),
+              renderTable(top, [
+                { key: 'number', label: 'ticket' },
+                { key: 'type' },
+                { key: 'band' },
+                { key: 'dueAt', label: 'due' },
+                { key: 'minutesLeft', label: 'mins left', align: 'right' },
+                { key: 'reason', width: 42 },
+              ]),
+            ])
+          );
           return 0;
         })
       );
