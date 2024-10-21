@@ -43,6 +43,13 @@ export function buildResponse(raw) {
   if (definition.key === 'MEET_SCHEDULED' && meetAt === null) {
     throw new ResponseError('a scheduled meet has to carry the time it was set for', { number });
   }
+  const supersedes = optionalString(raw.supersedes, 'supersedes');
+  if (supersedes !== null && !isStamp(supersedes)) {
+    throw new ResponseError('a superseded posting is named by its own timestamp', {
+      number,
+      supersedes,
+    });
+  }
   return deepFreeze({
     number,
     code: definition.code,
@@ -53,6 +60,7 @@ export function buildResponse(raw) {
     marksThrough,
     meetAt,
     note: optionalString(raw.note, 'note'),
+    supersedes,
   });
 }
 
