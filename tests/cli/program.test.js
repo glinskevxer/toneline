@@ -215,3 +215,76 @@ describe('queue', () => {
     expect(ticketLines).toHaveLength(1);
   });
 });
+
+describe('register', () => {
+  it('prints the register', async () => {
+    const result = await invoke(['register', '-c', CONFIG, '-f', FEED]);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain('register of 4 tickets');
+    expect(result.out).toContain('lawful start');
+  });
+
+  it('fills the response column when told when the desk answered', async () => {
+    const result = await invoke(['register', '-c', CONFIG, '-f', FEED, '-a', '2024-03-14T08:00']);
+    expect(result.out).toMatch(/\s9\s/);
+  });
+
+  it('writes the register out as csv', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'toneline-prog-'));
+    const path = join(dir, 'register.csv');
+    const result = await invoke(['register', '-c', CONFIG, '-f', FEED, '-o', path]);
+    expect(result.code).toBe(0);
+    expect(readFileSync(path, 'utf8').split('\n')[0]).toContain('ticket,type,status');
+    rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe('invoice', () => {
+  it('bills the month the desk answered in', async () => {
+    const result = await invoke([
+      'invoice',
+      '-c',
+      CONFIG,
+      '-f',
+      FEED,
+      '-p',
+      '2024-03',
+      '-a',
+      '2024-03-14T08:00',
+    ]);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain('invoice for 2024-03');
+    expect(result.out).toContain('total');
+  });
+
+  it('bills nothing for a month with no work', async () => {
+    const result = await invoke([
+      'invoice',
+      '-c',
+      CONFIG,
+      '-f',
+      FEED,
+      '-p',
+      '2024-05',
+      '-a',
+      '2024-03-14T08:00',
+    ]);
+    expect(result.code).toBe(0);
+    expect(result.err).toContain('answered in another month');
+  });
+
+  it('refuses a period that is not a month', async () => {
+    const result = await invoke([
+      'invoice',
+      '-c',
+      CONFIG,
+      '-f',
+      FEED,
+      '-p',
+      'march',
+      '-a',
+      '2024-03-14T08:00',
+    ]);
+    expect(result.code).toBe(1);
+  });
+});

@@ -17,6 +17,11 @@ import { writeJson } from '../io/files.js';
 import { schedulingContext } from '../config/load.js';
 import { ageTickets, bucketCounts, openTickets } from '../reporting/aging.js';
 import { bandCounts, orderQueue } from '../ticket/priority.js';
+import { expiryContext } from '../config/load.js';
+import { buildRegister, responseCodeCounts, writeRegisterCsv } from '../reporting/register.js';
+import { buildInvoice, invoiceByType } from '../billing/invoice.js';
+import { buildRates } from '../billing/rates.js';
+import { writeText } from '../io/files.js';
 
 /**
  * Build the program.
@@ -230,6 +235,93 @@ export function buildProgram(options = {}) {
               ]),
             ])
           );
+          return 0;
+        })
+      );
+    });
+
+  program
+    .command('register')
+    .description('build the ticket register the regulator asks for')
+    .requiredOption('-c, --config <path>', 'path to the configuration file')
+    .requiredOption('-f, --feed <path>', 'path to the transmission feed')
+    .option('-a, --at <stamp>', 'answer the feed at this moment first')
+    .option('-o, --out <path>', 'write the register to this file as csv')
+    .action((opts) => {
+      setExit(
+        runCommand(writers, () => {
+          const { desk } = openDesk(opts.config);
+          const { tickets } = readFeed(opts.feed, { skipBad: true });
+          const session = opts.at
+            ? answerBatch(tickets, { desk, at: opts.at, by: 'register' })
+            : { postings: [] };
+          const rows = buildRegister(tickets, {
+            responses: session.postings,
+            ...expiryContext(desk),
+          });
+          writers.write(
+            joinSections([
+              renderHeading(`register of ${rows.length} tickets`),
+              renderPairs(responseCodeCounts(rows)),
+              renderTable(rows, [
+                { key: 'number', label: 'ticket' },
+                { key: 'type' },
+                { key: 'lawfulStartAt', label: 'lawful start' },
+                { key: 'expiresOn', label: 'expires' },
+                { key: 'responseCode', label: 'code', align: 'right' },
+                { key: 'address', width: 26 },
+              ]),
+            ])
+          );
+          if (opts.out) {
+            const path = writeText(opts.out, writeRegisterCsv(rows));
+            writers.line(`wrote ${rows.length} rows to ${path}`);
+          }
+          return 0;
+        })
+      );
+    });
+
+  program
+    .command('invoice')
+    .description('build the monthly locating invoice')
+    .requiredOption('-c, --config <path>', 'path to the configuration file')
+    .requiredOption('-f, --feed <path>', 'path to the transmission feed')
+    .requiredOption('-p, --period <month>', 'the month to bill, as YYYY-MM')
+    .requiredOption('-a, --at <stamp>', 'the moment the desk answered the feed')
+    .action((opts) => {
+      setExit(
+        runCommand(writers, () => {
+          const { desk } = openDesk(opts.config);
+          const { tickets } = readFeed(opts.feed, { skipBad: true });
+          const session = answerBatch(tickets, { desk, at: opts.at, by: 'invoice' });
+          const invoice = buildInvoice({
+            period: opts.period,
+            tickets,
+            responses: session.postings,
+            rates: buildRates(desk.policies.billing ?? {}),
+          });
+          writers.write(
+            joinSections([
+              renderHeading(`invoice for ${invoice.period}`),
+              renderTable(invoice.lines, [
+                { key: 'number', label: 'ticket' },
+                { key: 'type' },
+                { key: 'footage', align: 'right' },
+                { key: 'multiplier', align: 'right' },
+                { key: 'amount', align: 'right' },
+              ]),
+              renderPairs({
+                ...invoiceByType(invoice),
+                subtotal: invoice.subtotal,
+                minimum: invoice.minimumTopUp,
+                total: invoice.total,
+              }),
+            ])
+          );
+          for (const entry of invoice.skipped) {
+            writers.warn(`skipped ${entry.number}: ${entry.reason}`);
+          }
           return 0;
         })
       );
