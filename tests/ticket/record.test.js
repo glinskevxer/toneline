@@ -4,6 +4,7 @@ import {
   typeOf,
   needsMarking,
   siteKey,
+  isReachable,
   describeTicket,
   withTicketFields,
 } from '../../src/ticket/record.js';
@@ -80,6 +81,7 @@ describe('buildTicket', () => {
       contact: null,
       phone: null,
       email: null,
+      contactProblems: [],
     });
   });
 
@@ -166,5 +168,46 @@ describe('derived helpers', () => {
     expect(changed.status).toBe('SCREENED');
     expect(changed.number).toBe(ticket.number);
     expect(() => withTicketFields(ticket, { type: 'ROUTINE' })).toThrow(TicketError);
+  });
+});
+
+describe('the excavator contact block', () => {
+  it('formats a phone number one way', () => {
+    const ticket = buildTicket({ ...RAW, excavator: { company: 'x', phone: '(405) 555-0148' } });
+    expect(ticket.excavator.phone).toBe('405 555 0148');
+  });
+
+  it('lower cases an email address', () => {
+    const ticket = buildTicket({
+      ...RAW,
+      excavator: { company: 'x', email: 'RM@Digwell.Example' },
+    });
+    expect(ticket.excavator.email).toBe('rm@digwell.example');
+  });
+
+  it('keeps a number it cannot format and says why', () => {
+    const ticket = buildTicket({ ...RAW, excavator: { company: 'x', phone: '555-0148' } });
+    expect(ticket.excavator.phone).toBe('555-0148');
+    expect(ticket.excavator.contactProblems).toContain(
+      'the phone number does not have enough digits to dial'
+    );
+  });
+
+  it('does not count a missing detail as a problem', () => {
+    const ticket = buildTicket({ ...RAW, excavator: { company: 'x' } });
+    expect(ticket.excavator.contactProblems).toEqual([]);
+  });
+
+  it('gives a bare name an empty problem list', () => {
+    expect(buildTicket({ ...RAW, excavator: 'Digwell' }).excavator.contactProblems).toEqual([]);
+  });
+
+  it('says whether the excavator can be reached', () => {
+    expect(isReachable(buildTicket(RAW))).toBe(true);
+    expect(isReachable(buildTicket({ ...RAW, excavator: null }))).toBe(false);
+    expect(isReachable(buildTicket({ ...RAW, excavator: { company: 'x' } }))).toBe(false);
+    expect(
+      isReachable(buildTicket({ ...RAW, excavator: { company: 'x', phone: '555-0148' } }))
+    ).toBe(false);
   });
 });

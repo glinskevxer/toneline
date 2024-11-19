@@ -11,6 +11,7 @@
 import { addDays } from '../time/date.js';
 import { atTime, dateOf } from '../time/stamp.js';
 import { screenTicket } from '../screening/screen.js';
+import { isReachable } from '../ticket/record.js';
 import { screeningContext } from '../config/load.js';
 import { recommendByScope } from './decide.js';
 import { buildResponse } from './post.js';
@@ -76,6 +77,7 @@ export function answerBatch(tickets, args) {
   const postings = [];
   const screenings = [];
   const held = [];
+  const unreachable = [];
   for (const ticket of tickets) {
     const { screening, postings: made } = answerTicket(ticket, args);
     screenings.push(screening);
@@ -83,9 +85,17 @@ export function answerBatch(tickets, args) {
       held.push({ number: ticket.number, reason: 'no geometry and no member code of ours' });
       continue;
     }
+    // A meet has to be arranged with somebody, so a ticket that needs one and
+    // carries no working contact is called out even though it is still answered.
+    if (made.some((posting) => posting.meetAt !== null) && !isReachable(ticket)) {
+      unreachable.push({
+        number: ticket.number,
+        reason: 'a meet is needed and nobody can be rung',
+      });
+    }
     postings.push(...made);
   }
-  return { postings, screenings, held };
+  return { postings, screenings, held, unreachable };
 }
 
 /** Group postings by the ticket they answer. */
@@ -100,7 +110,7 @@ export function postingsByTicket(postings) {
 }
 
 /** A one line summary of what a session did. */
-export function sessionSummary({ postings, screenings, held }) {
+export function sessionSummary({ postings, screenings, held, unreachable = [] }) {
   const codes = {};
   for (const posting of postings) {
     codes[posting.code] = (codes[posting.code] ?? 0) + 1;
@@ -109,6 +119,7 @@ export function sessionSummary({ postings, screenings, held }) {
     tickets: screenings.length,
     postings: postings.length,
     held: held.length,
+    unreachable: unreachable.length,
     conflicts: screenings.filter((screening) => screening.conflict).length,
     codes,
   };

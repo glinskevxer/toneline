@@ -118,3 +118,33 @@ describe('postingsByTicket and sessionSummary', () => {
     expect(Object.keys(summary.codes).length).toBeGreaterThan(1);
   });
 });
+
+describe('reaching the excavator', () => {
+  it('calls out a meet with nobody to ring', () => {
+    const design = buildTicket({
+      number: 'B240315000997',
+      type: 'DESIGN',
+      takenAt: '2024-03-15T09:00',
+      address: '3000 N WALKER AVE',
+      members: ['CTG01'],
+      site: { points: [{ lat: 35.48, lon: -97.5164 }] },
+      extent: '200 feet',
+      excavator: { company: 'Haller Engineering' },
+    });
+    const session = answerBatch([design], ARGS);
+    expect(session.unreachable).toEqual([
+      { number: 'B240315000997', reason: 'a meet is needed and nobody can be rung' },
+    ]);
+    expect(session.postings.length).toBeGreaterThan(0);
+  });
+
+  it('says nothing when the excavator can be rung', () => {
+    const session = answerBatch(tickets, ARGS);
+    expect(session.unreachable).toEqual([]);
+  });
+
+  it('counts the unreachable ones in the summary', () => {
+    const summary = sessionSummary(answerBatch(tickets, ARGS));
+    expect(summary.unreachable).toBe(0);
+  });
+});

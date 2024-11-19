@@ -21,6 +21,7 @@ import { isDate } from '../time/date.js';
 import { parseTicketNumber } from '../core/ids.js';
 import { ticketStatus, ticketType } from './types.js';
 import { placeKey, normaliseStreet } from '../text/address.js';
+import { tidyContact } from '../text/contact.js';
 
 /**
  * @typedef {object} Ticket
@@ -92,19 +93,32 @@ export function buildTicket(raw) {
   return deepFreeze(ticket);
 }
 
+/**
+ * Read the excavator block.
+ *
+ * The contact details go through the same tidying every other part of the desk
+ * uses, so a phone number typed six different ways dials the same either way.
+ * A detail that will not tidy is kept as it was typed and noted, because losing
+ * a half readable number is worse than carrying a doubtful one.
+ */
 function buildExcavator(raw) {
   if (isBlank(raw)) return null;
   if (typeof raw === 'string') {
-    return { company: raw.trim(), contact: null, phone: null, email: null };
+    return { company: raw.trim(), contact: null, phone: null, email: null, contactProblems: [] };
   }
   if (typeof raw !== 'object') {
     throw new TicketError('excavator must be a name or a record', { type: typeof raw });
   }
+  const contact = optionalString(raw.contact, 'excavator.contact');
+  const phone = optionalString(raw.phone, 'excavator.phone');
+  const email = optionalString(raw.email, 'excavator.email');
+  const tidy = tidyContact({ name: contact, phone, email });
   return {
     company: requireString(raw.company ?? raw.name, 'excavator.company'),
-    contact: optionalString(raw.contact, 'excavator.contact'),
-    phone: optionalString(raw.phone, 'excavator.phone'),
-    email: optionalString(raw.email, 'excavator.email'),
+    contact,
+    phone: tidy.phone ?? phone,
+    email: tidy.email ?? email,
+    contactProblems: tidy.problems.filter((problem) => !problem.startsWith('no ')),
   };
 }
 
@@ -129,6 +143,14 @@ export function siteKey(ticket) {
 export function describeTicket(ticket) {
   const where = ticket.address ?? ticket.intersection ?? 'no location given';
   return `${ticket.number} ${ticket.type} ${where}`;
+}
+
+/** True when the excavator cannot be reached from what the ticket carries. */
+export function isReachable(ticket) {
+  const excavator = ticket.excavator;
+  if (excavator === null) return false;
+  if (excavator.contactProblems.length > 0) return false;
+  return excavator.phone !== null || excavator.email !== null;
 }
 
 /** A copy of the ticket with some fields replaced, revalidated on the way. */
