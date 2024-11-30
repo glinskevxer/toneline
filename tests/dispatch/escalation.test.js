@@ -126,10 +126,16 @@ describe('assessEscalation', () => {
   });
 
   it('honours a tighter warning window', () => {
-    const policy = escalationPolicy({ warnMinutesBeforeDue: 5 });
-    expect(assessEscalation(ticket(), { at: '2024-03-15T08:15', calendar, policy }).level).toBe(
+    const escalation = escalationPolicy({ warnMinutesBeforeDue: 5 });
+    expect(assessEscalation(ticket(), { at: '2024-03-15T08:15', calendar, escalation }).level).toBe(
       'none'
     );
+  });
+
+  it('keeps the response clock policy out of the escalation policy', () => {
+    const clock = { capAtLawfulStart: true, graceMinutes: 0 };
+    const record = assessEscalation(ticket(), { at: '2024-03-15T08:15', calendar, policy: clock });
+    expect(record.level).toBe('supervisor');
   });
 
   it('freezes what it returns', () => {

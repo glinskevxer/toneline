@@ -45,7 +45,8 @@ export function worseLevel(left, right) {
  * @param {object} [args.screening] the screening, when there is one
  * @param {object} [args.assignment] the assignment, when it has been handed out
  * @param {boolean} [args.answered] whether a posting has been made
- * @param {object} [args.policy] escalation policy
+ * @param {object} [args.escalation] escalation policy, under its own key so the
+ *   response clock policy can travel in the same argument bag
  * @returns {object} a frozen escalation record
  */
 export function assessEscalation(ticket, args) {
@@ -54,9 +55,10 @@ export function assessEscalation(ticket, args) {
     screening = null,
     assignment = null,
     answered = false,
-    policy = DEFAULT_ESCALATION_POLICY,
+    escalation = DEFAULT_ESCALATION_POLICY,
     ...clockOptions
   } = args;
+  const policy = escalation;
   const reasons = [];
   let level = 'none';
   if (answered) {
