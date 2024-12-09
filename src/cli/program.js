@@ -22,6 +22,7 @@ import { buildRegister, responseCodeCounts, writeRegisterCsv } from '../reportin
 import { buildInvoice, invoiceByType } from '../billing/invoice.js';
 import { buildRates } from '../billing/rates.js';
 import { writeText } from '../io/files.js';
+import { briefHeadline, briefNumbers, buildBrief } from '../reporting/brief.js';
 
 /**
  * Build the program.
@@ -322,6 +323,56 @@ export function buildProgram(options = {}) {
           for (const entry of invoice.skipped) {
             writers.warn(`skipped ${entry.number}: ${entry.reason}`);
           }
+          return 0;
+        })
+      );
+    });
+
+  program
+    .command('brief')
+    .description('the morning brief for the supervisor')
+    .requiredOption('-c, --config <path>', 'path to the configuration file')
+    .requiredOption('-f, --feed <path>', 'path to the transmission feed')
+    .requiredOption('-a, --at <stamp>', 'the moment the brief is drawn')
+    .option('--json', 'print the brief as json instead of a table', false)
+    .action((opts) => {
+      setExit(
+        runCommand(writers, () => {
+          const { desk } = openDesk(opts.config);
+          const { tickets } = readFeed(opts.feed, { skipBad: true });
+          const brief = buildBrief({ desk, tickets, at: opts.at });
+          if (opts.json) {
+            writers.line(JSON.stringify(brief, null, 2));
+            return 0;
+          }
+          writers.write(
+            joinSections([
+              renderHeading(`${brief.operator} at ${brief.at}`),
+              `${briefHeadline(brief)}\n`,
+              renderPairs(briefNumbers(brief)),
+              renderTable(brief.queue, [
+                { key: 'number', label: 'ticket' },
+                { key: 'type' },
+                { key: 'band' },
+                { key: 'dueAt', label: 'due' },
+                { key: 'minutesLeft', label: 'mins left', align: 'right' },
+              ]),
+              brief.escalations.length === 0
+                ? ''
+                : renderTable(
+                    brief.escalations.map((entry) => ({
+                      number: entry.number,
+                      level: entry.level,
+                      why: entry.reasons.join('; '),
+                    })),
+                    [
+                      { key: 'number', label: 'escalate' },
+                      { key: 'level' },
+                      { key: 'why', width: 48 },
+                    ]
+                  ),
+            ])
+          );
           return 0;
         })
       );

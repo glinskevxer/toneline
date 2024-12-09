@@ -288,3 +288,38 @@ describe('invoice', () => {
     expect(result.code).toBe(1);
   });
 });
+
+describe('brief', () => {
+  it('prints the morning brief', async () => {
+    const result = await invoke(['brief', '-c', CONFIG, '-f', FEED, '-a', '2024-03-15T09:00']);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain('Cross Timbers Gas and Water at 2024-03-15T09:00');
+    expect(result.out).toContain('open');
+    expect(result.out).toContain('escalate');
+  });
+
+  it('prints the brief as json when asked', async () => {
+    const result = await invoke([
+      'brief',
+      '-c',
+      CONFIG,
+      '-f',
+      FEED,
+      '-a',
+      '2024-03-15T09:00',
+      '--json',
+    ]);
+    expect(result.code).toBe(0);
+    const parsed = JSON.parse(result.out);
+    expect(parsed.open).toBe(4);
+    expect(parsed.operator).toBe('Cross Timbers Gas and Water');
+  });
+
+  it('leaves the escalation table out when there is nothing to chase', async () => {
+    const quiet = await invoke(['brief', '-c', CONFIG, '-f', FEED, '-a', '2024-03-13T09:20']);
+    expect(quiet.code).toBe(0);
+    expect(quiet.out).not.toMatch(/^escalate\b/m);
+    const busy = await invoke(['brief', '-c', CONFIG, '-f', FEED, '-a', '2024-03-15T09:00']);
+    expect(busy.out).toMatch(/^escalate\b/m);
+  });
+});
