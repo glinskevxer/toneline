@@ -1,0 +1,4 @@
+id,at,ticket,facility,type,point,excavator,method,depth_ft,marks_present,marks_accurate,ticket_valid,service_out,customers_out,injury,ignition,reported_by,narrative
+DMG-2024-011,03/19/2024 10:25,B240313000418,GM-4412,gas,35.4676 -97.5148,DIGWELL EXCAVATING,backhoe,4,Y,Y,Y,Y,12,N,N,loc-14,bucket caught the service tee at the driveway
+DMG-2024-012,04/02/2024 14:10,,WT-2210,water,35.4674 -97.5100,PANHANDLE FENCE,auger,3,N,N,N,Y,3,N,N,loc-9,post hole went through the main with no ticket on file
+DMG-2024-013,04/18/2024 08:40,B240314000502,GM-5001,gas,35.4712 -97.5164,SOONER UNDERGROUND,trencher,5,Y,N,Y,N,0,N,N,loc-14,marks were eight feet off the as built
