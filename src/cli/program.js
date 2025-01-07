@@ -23,6 +23,10 @@ import { buildInvoice, invoiceByType } from '../billing/invoice.js';
 import { buildRates } from '../billing/rates.js';
 import { writeText } from '../io/files.js';
 import { briefHeadline, briefNumbers, buildBrief } from '../reporting/brief.js';
+import { readDamageCsv } from '../io/damages.js';
+import { readText } from '../io/files.js';
+import { buildDamageRegister, registerTotals, writeDamageRegisterCsv } from '../damage/register.js';
+import { damageSummary, topCounts } from '../damage/stats.js';
 
 /**
  * Build the program.
@@ -373,6 +377,59 @@ export function buildProgram(options = {}) {
                   ),
             ])
           );
+          return 0;
+        })
+      );
+    });
+
+  program
+    .command('damage')
+    .description('read the damage extract and report on it')
+    .requiredOption('-d, --damages <path>', 'path to the damage extract')
+    .option('-f, --feed <path>', 'path to the transmission feed, to count tickets')
+    .option('-o, --out <path>', 'write the damage register to this file as csv')
+    .option('--skip-bad', 'carry on past rows that will not read', false)
+    .action((opts) => {
+      setExit(
+        runCommand(writers, () => {
+          const { damages, failures } = readDamageCsv(readText(opts.damages), {
+            skipBad: opts.skipBad,
+          });
+          const tickets = opts.feed ? readFeed(opts.feed, { skipBad: true }).tickets.length : 0;
+          const summary = damageSummary(damages, { tickets });
+          const rows = buildDamageRegister(damages.map((damage) => ({ damage })));
+          writers.write(
+            joinSections([
+              renderHeading(`${damages.length} damages`),
+              renderPairs({
+                reportable: summary.reportable,
+                withOutage: summary.withOutage,
+                customersOut: summary.customersOut,
+                ratePerThousand: summary.ratePerThousand,
+              }),
+              renderTable(
+                topCounts(summary.byCause, 4).map((entry) => ({
+                  cause: entry.key,
+                  count: entry.count,
+                })),
+                [{ key: 'cause' }, { key: 'count', align: 'right' }]
+              ),
+              renderTable(rows, [
+                { key: 'id' },
+                { key: 'at' },
+                { key: 'facilityType', label: 'type' },
+                { key: 'cause' },
+                { key: 'responsible' },
+                { key: 'customersOut', label: 'out', align: 'right' },
+              ]),
+              renderPairs(registerTotals(rows)),
+            ])
+          );
+          for (const failure of failures) writers.warn(`row ${failure.row}: ${failure.message}`);
+          if (opts.out) {
+            const path = writeText(opts.out, writeDamageRegisterCsv(rows));
+            writers.line(`wrote ${rows.length} rows to ${path}`);
+          }
           return 0;
         })
       );

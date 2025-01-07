@@ -323,3 +323,40 @@ describe('brief', () => {
     expect(busy.out).toMatch(/^escalate\b/m);
   });
 });
+
+describe('damage', () => {
+  const DAMAGES = join(examples, 'damages-2024.csv');
+
+  it('reports on the worked extract', async () => {
+    const result = await invoke(['damage', '-d', DAMAGES]);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain('3 damages');
+    expect(result.out).toContain('NOTIFICATION');
+    expect(result.out).toContain('DMG-2024-011');
+  });
+
+  it('works the rate out when it is told the ticket count', async () => {
+    const result = await invoke(['damage', '-d', DAMAGES, '-f', FEED]);
+    expect(result.out).toContain('ratePerThousand  750');
+  });
+
+  it('writes the register out as csv', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'toneline-prog-'));
+    const path = join(dir, 'damages.csv');
+    const result = await invoke(['damage', '-d', DAMAGES, '-o', path]);
+    expect(result.code).toBe(0);
+    expect(readFileSync(path, 'utf8').split('\n')[0]).toContain('id,at,ticket');
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('fails on an extract row it cannot read unless told to skip', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'toneline-prog-'));
+    const path = join(dir, 'bad.csv');
+    writeFileSync(path, 'id,at,type,reported_by\nBAD,not a date,gas,loc-1\n');
+    expect((await invoke(['damage', '-d', path])).code).toBe(1);
+    const loose = await invoke(['damage', '-d', path, '--skip-bad']);
+    expect(loose.code).toBe(0);
+    expect(loose.err).toContain('row 2:');
+    rmSync(dir, { recursive: true, force: true });
+  });
+});
