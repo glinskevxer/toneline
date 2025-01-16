@@ -136,3 +136,39 @@ describe('loadFacilities', () => {
     expect(desk.network.size).toBe(1);
   });
 });
+
+describe('holiday presets in a configuration', () => {
+  it('expands a preset', () => {
+    const desk = loadDesk({ ...CONFIG, calendar: { preset: 'UTILITY' } });
+    expect(desk.calendar.isBusinessDay('2024-07-04')).toBe(false);
+    expect(desk.calendar.isBusinessDay('2024-10-14')).toBe(true);
+  });
+
+  it('honours the operator additions and omissions', () => {
+    const desk = loadDesk({
+      ...CONFIG,
+      calendar: {
+        preset: 'UTILITY',
+        add: [{ kind: 'fixed', month: 12, day: 24, name: 'christmas eve' }],
+        drop: ['juneteenth'],
+      },
+    });
+    expect(desk.calendar.isBusinessDay('2024-12-24')).toBe(false);
+    expect(desk.calendar.isBusinessDay('2024-06-19')).toBe(true);
+  });
+
+  it('lets an explicit list win', () => {
+    const desk = loadDesk({
+      ...CONFIG,
+      calendar: { holidays: [{ kind: 'fixed', month: 3, day: 1, name: 'founders day' }] },
+    });
+    expect(desk.calendar.isBusinessDay('2024-03-01')).toBe(false);
+    expect(desk.calendar.isBusinessDay('2024-07-04')).toBe(true);
+  });
+
+  it('falls back to weekends only', () => {
+    const desk = loadDesk({ ...CONFIG, calendar: { weekend: ['sunday'] } });
+    expect(desk.calendar.isBusinessDay('2024-07-04')).toBe(true);
+    expect(desk.calendar.isBusinessDay('2024-03-16')).toBe(true);
+  });
+});

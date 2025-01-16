@@ -177,3 +177,38 @@ describe('small helpers', () => {
     expect(isConfigDate(20240315)).toBe(false);
   });
 });
+
+describe('holiday presets in the schema', () => {
+  it('accepts a preset with additions and omissions', () => {
+    const config = {
+      ...GOOD,
+      calendar: {
+        preset: 'UTILITY',
+        add: [{ kind: 'fixed', month: 12, day: 24, name: 'christmas eve' }],
+        drop: ['juneteenth'],
+      },
+    };
+    expect(validateConfig(config).errors).toEqual([]);
+  });
+
+  it('rejects a preset it does not ship', () => {
+    const { errors } = validateConfig({ ...GOOD, calendar: { preset: 'bank' } });
+    expect(errors[0]).toMatch(/calendar.preset must be one of/);
+  });
+
+  it('refuses a preset and an explicit list together', () => {
+    const config = { ...GOOD, calendar: { preset: 'UTILITY', holidays: [] } };
+    expect(validateConfig(config).errors).toContain(
+      'calendar names a preset and a holiday list, so which one wins is not clear'
+    );
+  });
+
+  it('rejects additions or omissions that are not lists', () => {
+    expect(validateConfig({ ...GOOD, calendar: { preset: 'UTILITY', add: {} } }).errors).toContain(
+      'calendar.add must be a list'
+    );
+    expect(
+      validateConfig({ ...GOOD, calendar: { preset: 'UTILITY', drop: 'juneteenth' } }).errors
+    ).toContain('calendar.drop must be a list');
+  });
+});

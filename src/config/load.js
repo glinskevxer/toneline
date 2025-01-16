@@ -8,6 +8,7 @@
 
 import { ConfigError } from '../core/errors.js';
 import { Calendar } from '../time/calendar.js';
+import { holidayList } from '../time/holidays.js';
 import { WorkSchedule } from '../time/workhours.js';
 import { buildDistricts } from '../network/district.js';
 import { buildNetwork } from '../network/network.js';
@@ -44,7 +45,7 @@ export function loadDesk(config, options = {}) {
   const calendar = new Calendar({
     name: config.operator.code,
     weekend: config.calendar?.weekend ?? ['saturday', 'sunday'],
-    holidays: config.calendar?.holidays ?? [],
+    holidays: holidaysFrom(config.calendar),
   });
   const schedule = new WorkSchedule({
     name: `${config.operator.code} desk`,
@@ -68,6 +69,22 @@ export function loadDesk(config, options = {}) {
       clock: clockPolicy(config.policies?.clock ?? {}),
     }),
     warnings,
+  });
+}
+
+/**
+ * The holiday rules a configuration asks for.
+ *
+ * An explicit list wins, a preset is expanded with the operator's own additions
+ * and omissions, and a configuration that says nothing gets weekends only.
+ */
+function holidaysFrom(calendar) {
+  if (calendar?.holidays !== undefined) return calendar.holidays;
+  if (calendar?.preset === undefined) return [];
+  return holidayList({
+    preset: calendar.preset,
+    add: calendar.add ?? [],
+    drop: calendar.drop ?? [],
   });
 }
 

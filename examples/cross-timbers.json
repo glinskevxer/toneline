@@ -11,32 +11,9 @@
   },
   "calendar": {
     "weekend": ["saturday", "sunday"],
-    "holidays": [
-      { "kind": "fixed", "month": 1, "day": 1, "name": "new year", "observed": "nearest-weekday" },
-      { "kind": "nth-weekday", "month": 5, "weekday": "monday", "nth": -1, "name": "memorial day" },
-      {
-        "kind": "fixed",
-        "month": 7,
-        "day": 4,
-        "name": "independence day",
-        "observed": "nearest-weekday"
-      },
-      { "kind": "nth-weekday", "month": 9, "weekday": "monday", "nth": 1, "name": "labour day" },
-      {
-        "kind": "nth-weekday",
-        "month": 11,
-        "weekday": "thursday",
-        "nth": 4,
-        "name": "thanksgiving"
-      },
-      {
-        "kind": "fixed",
-        "month": 12,
-        "day": 25,
-        "name": "christmas",
-        "observed": "nearest-weekday"
-      }
-    ]
+    "preset": "UTILITY",
+    "add": [{ "kind": "fixed", "month": 12, "day": 24, "name": "christmas eve" }],
+    "drop": ["juneteenth"]
   },
   "hours": {
     "monday": { "open": "06:30", "close": "16:30" },

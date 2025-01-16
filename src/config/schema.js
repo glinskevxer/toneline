@@ -12,6 +12,7 @@ import { ConfigError } from '../core/errors.js';
 import { isBlank } from '../core/fields.js';
 import { isDate } from '../time/date.js';
 import { FACILITY_TYPE_CODES } from '../ticket/types.js';
+import { HOLIDAY_PRESETS } from '../time/holidays.js';
 
 const CLOCK = /^\d{1,2}:\d{2}$/;
 const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -78,6 +79,19 @@ function checkCalendar(calendar, errors, warnings) {
   }
   if (calendar.weekend !== undefined && !Array.isArray(calendar.weekend)) {
     errors.push('calendar.weekend must be a list of weekdays');
+  }
+  if (calendar.preset !== undefined) {
+    if (!HOLIDAY_PRESETS.includes(String(calendar.preset).toUpperCase())) {
+      errors.push(`calendar.preset must be one of ${HOLIDAY_PRESETS.join(', ')}`);
+    }
+    if (calendar.holidays !== undefined) {
+      errors.push('calendar names a preset and a holiday list, so which one wins is not clear');
+    }
+  }
+  for (const key of ['add', 'drop']) {
+    if (calendar[key] !== undefined && !Array.isArray(calendar[key])) {
+      errors.push(`calendar.${key} must be a list`);
+    }
   }
   if (calendar.holidays !== undefined) {
     if (!Array.isArray(calendar.holidays)) {
