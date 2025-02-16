@@ -360,3 +360,32 @@ describe('damage', () => {
     rmSync(dir, { recursive: true, force: true });
   });
 });
+
+describe('coverage', () => {
+  it('reports what was ours and what was touched', async () => {
+    const result = await invoke(['coverage', '-c', CONFIG, '-f', FEED]);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain('coverage over 4 tickets');
+    expect(result.out).toMatch(/facilities\s+10/);
+    expect(result.out).toMatch(/touched\s+\d/);
+    expect(result.out).toContain('YUKON');
+  });
+
+  it('warns about a place the centre keeps sending work for', async () => {
+    const result = await invoke(['coverage', '-c', CONFIG, '-f', FEED]);
+    expect(result.err).toBe('');
+  });
+
+  it('checks the plant extract when asked', async () => {
+    const plain = await invoke(['coverage', '-c', CONFIG, '-f', FEED]);
+    const checked = await invoke(['coverage', '-c', CONFIG, '-f', FEED, '--quality']);
+    expect(checked.code).toBe(0);
+    expect(checked.out).toContain('GAS');
+    expect(checked.out.length).toBeGreaterThan(plain.out.length);
+  });
+
+  it('names the plant that never came up', async () => {
+    const result = await invoke(['coverage', '-c', CONFIG, '-f', FEED, '--quality']);
+    expect(result.out).toMatch(/WATER\s+\d/);
+  });
+});

@@ -27,6 +27,8 @@ import { readDamageCsv } from '../io/damages.js';
 import { readText } from '../io/files.js';
 import { buildDamageRegister, registerTotals, writeDamageRegisterCsv } from '../damage/register.js';
 import { damageSummary, topCounts } from '../damage/stats.js';
+import { coverageReport, suspectPlaces } from '../screening/coverage.js';
+import { checkNetwork, networkProfile } from '../network/quality.js';
 
 /**
  * Build the program.
@@ -429,6 +431,62 @@ export function buildProgram(options = {}) {
           if (opts.out) {
             const path = writeText(opts.out, writeDamageRegisterCsv(rows));
             writers.line(`wrote ${rows.length} rows to ${path}`);
+          }
+          return 0;
+        })
+      );
+    });
+
+  program
+    .command('coverage')
+    .description('report on plant that never comes up and tickets that are not ours')
+    .requiredOption('-c, --config <path>', 'path to the configuration file')
+    .requiredOption('-f, --feed <path>', 'path to the transmission feed')
+    .option('--quality', 'also check the plant extract for bad records', false)
+    .action((opts) => {
+      setExit(
+        runCommand(writers, () => {
+          const { desk } = openDesk(opts.config);
+          const { tickets } = readFeed(opts.feed, { skipBad: true });
+          const context = screeningContext(desk);
+          const entries = tickets.map((ticket) => ({
+            ticket,
+            screening: screenTicket(ticket, context),
+          }));
+          const report = coverageReport(desk.network, entries);
+          const sections = [
+            renderHeading(`coverage over ${report.tickets} tickets`),
+            renderPairs({
+              ours: report.ours,
+              outside: report.outside,
+              facilities: report.facilities,
+              touched: report.touched,
+              touchedShare: report.touchedShare,
+            }),
+            renderTable(
+              report.outsideByPlace.map((place) => ({
+                place: place.place,
+                tickets: place.tickets.length,
+              })),
+              [{ key: 'place' }, { key: 'tickets', align: 'right' }]
+            ),
+          ];
+          if (opts.quality) {
+            const problems = checkNetwork(desk.network);
+            sections.push(
+              renderPairs(networkProfile(desk.network).byType),
+              renderTable(
+                problems.problems.map((entry) => ({
+                  id: entry.id,
+                  problems: entry.problems.join('; '),
+                })),
+                [{ key: 'id' }, { key: 'problems', width: 60 }]
+              )
+            );
+          }
+          writers.write(joinSections(sections));
+          for (const place of suspectPlaces(report)) {
+            writers.warn(`${place.tickets.length} tickets came in for ${place.place}`);
           }
           return 0;
         })
