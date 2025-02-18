@@ -1,0 +1,134 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: lint and format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.18.2
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+
+  test:
+    name: test on node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20.18.2', '22.13.1']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  coverage:
+    name: coverage thresholds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.18.2
+          cache: npm
+      - run: npm ci
+      - run: npm run coverage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/lcov.info
+          if-no-files-found: error
+
+  audit:
+    name: audit runtime dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.18.2
+          cache: npm
+      - run: npm ci
+      - run: npm audit --omit=dev --audit-level=moderate
+
+  worked-example:
+    name: run the worked desk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.18.2
+          cache: npm
+      - run: npm ci --omit=dev
+      - name: validate
+        run: node bin/toneline.js validate -c examples/cross-timbers.json --strict
+      - name: screen
+        run: node bin/toneline.js screen -c examples/cross-timbers.json -f examples/march-2024.feed
+      - name: respond
+        run: |
+          node bin/toneline.js respond \
+            -c examples/cross-timbers.json \
+            -f examples/march-2024.feed \
+            -a 2024-03-14T08:00 -b ci -o /tmp/postings.json
+      - name: queue
+        run: |
+          node bin/toneline.js queue -c examples/cross-timbers.json \
+            -f examples/march-2024.feed -a 2024-03-15T09:00
+      - name: age
+        run: |
+          node bin/toneline.js age -c examples/cross-timbers.json \
+            -f examples/march-2024.feed -a 2024-03-15T09:00
+      - name: brief
+        run: |
+          node bin/toneline.js brief -c examples/cross-timbers.json \
+            -f examples/march-2024.feed -a 2024-03-15T09:00
+      - name: register
+        run: |
+          node bin/toneline.js register -c examples/cross-timbers.json \
+            -f examples/march-2024.feed -a 2024-03-14T08:00 -o /tmp/register.csv
+      - name: invoice
+        run: |
+          node bin/toneline.js invoice -c examples/cross-timbers.json \
+            -f examples/march-2024.feed -p 2024-03 -a 2024-03-14T08:00
+      - name: damage
+        run: node bin/toneline.js damage -d examples/damages-2024.csv -f examples/march-2024.feed
+      - name: coverage
+        run: |
+          node bin/toneline.js coverage -c examples/cross-timbers.json \
+            -f examples/march-2024.feed --quality
+      - name: check what was written
+        run: |
+          test -s /tmp/postings.json
+          test -s /tmp/register.csv
+          head -1 /tmp/register.csv | grep -q '^ticket,type,status'
+
+  image:
+    name: build the container image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: build
+        run: docker build -t toneline:ci .
+      - name: run the worked desk inside it
+        run: |
+          docker run --rm -v "$PWD/examples:/desk/examples:ro" toneline:ci \
+            validate -c examples/cross-timbers.json --strict
