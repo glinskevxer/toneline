@@ -50,7 +50,10 @@ export function recommendResponse(ticket, screening, options = {}) {
   if (!definition.requiresMarking) {
     return decision('4', 'a design request is answered with records rather than marks');
   }
-  if (meetOnCritical && inTolerance.some((hit) => hit.critical)) {
+  // A critical facility the dig provably passes clear of does not need a meet.
+  // The marks still go down, which is why this drops to marked rather than to
+  // no facilities.
+  if (meetOnCritical && inTolerance.some((hit) => hit.critical) && !screening.depthCleared) {
     return decision('7', 'a critical facility runs through the work area');
   }
   return decision('2', 'our facilities in the work area have been marked');

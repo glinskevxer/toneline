@@ -183,3 +183,21 @@ describe('helpers', () => {
     );
   });
 });
+
+describe('depth on the recommendation', () => {
+  it('drops a critical meet to marks when the dig passes clear', () => {
+    const result = recommendResponse(
+      ticket(),
+      screening({ hits: [hit()], conflict: true, depthCleared: true })
+    );
+    expect(result.code).toBe('2');
+  });
+
+  it('still asks for a meet when the depth is not clear', () => {
+    const result = recommendResponse(
+      ticket(),
+      screening({ hits: [hit()], conflict: true, depthCleared: false })
+    );
+    expect(result.code).toBe('7');
+  });
+});

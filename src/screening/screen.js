@@ -13,11 +13,13 @@ import { toleranceFeetOf, toleranceMetresOf } from '../network/facility.js';
 import { feetToMetres, metresToFeet } from '../geo/point.js';
 import { facilityType } from '../ticket/types.js';
 import { workAreaFor } from '../ticket/site.js';
+import { withDepth } from './depth.js';
 
 /** How far past the tolerance zone a facility is still worth reporting. */
 export const DEFAULT_SCREEN_POLICY = Object.freeze({
   noticeMarginFeet: 25,
   reportAbandoned: true,
+  checkDepth: true,
 });
 
 /** Merge a partial screen policy over the defaults. */
@@ -52,6 +54,7 @@ export function screenTicket(
       ours: memberClaimed,
       hits: [],
       conflict: false,
+      depthCleared: false,
       critical: false,
       clearReason: memberClaimed ? null : 'no geometry',
     });
@@ -66,7 +69,7 @@ export function screenTicket(
   for (const { facility, metres } of found) {
     if (facility.abandoned && !policy.reportAbandoned) continue;
     const feet = metresToFeet(metres);
-    hits.push({
+    const hit = {
       facilityId: facility.id,
       type: facility.type,
       district: facility.district,
@@ -76,11 +79,19 @@ export function screenTicket(
       insideTolerance: metres <= toleranceMetresOf(facility),
       abandoned: facility.abandoned,
       critical: facilityType(facility.type).critical || facility.highConsequence,
-    });
+    };
+    hits.push(
+      policy.checkDepth
+        ? withDepth(hit, ticket, facility, { policy: policy.depth })
+        : { ...hit, depthVerdict: 'unknown', depthReason: 'depth was not checked' }
+    );
   }
 
   const live = hits.filter((hit) => !hit.abandoned);
   const conflict = live.some((hit) => hit.insideTolerance);
+  const depthCleared = live
+    .filter((hit) => hit.insideTolerance)
+    .every((hit) => hit.depthVerdict === 'clear');
   return deepFreeze({
     number: ticket.number,
     workArea: { source: area.source, radiusFeet: area.radiusFeet },
@@ -89,6 +100,7 @@ export function screenTicket(
     ours,
     hits,
     conflict,
+    depthCleared: conflict && depthCleared,
     critical: live.some((hit) => hit.insideTolerance && hit.critical),
     clearReason: clearReasonFor({ ours, hits: live, conflict }),
   });

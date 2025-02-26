@@ -187,3 +187,63 @@ describe('screenBatch and helpers', () => {
     expect(closestHit(screenTicket(far, { network, districts }))).toBeNull();
   });
 });
+
+describe('depth on a screening', () => {
+  it('judges each hit on depth as well as distance', () => {
+    const shallow = ticket(
+      { points: [destination(A, 150, 90)] },
+      { extent: '10 feet', depthFeet: 1 }
+    );
+    const result = screenTicket(shallow, { network, districts });
+    const gas = result.hits.find((hit) => hit.facilityId === 'GM-1');
+    expect(gas.depthVerdict).toBeDefined();
+  });
+
+  it('says the dig clears on depth when it passes under everything', () => {
+    const deep = buildNetwork([
+      { id: 'GM-1', type: 'gas', district: 'CENTRAL', path: [A, B], depthFeet: 3 },
+    ]);
+    const bore = ticket(
+      { points: [destination(A, 150, 90)] },
+      { extent: '10 feet', boring: true, depthFeet: 14 }
+    );
+    const result = screenTicket(bore, { network: deep, districts });
+    expect(result.conflict).toBe(true);
+    expect(result.depthCleared).toBe(true);
+  });
+
+  it('does not clear on depth when the cut reaches the main', () => {
+    const deep = buildNetwork([
+      { id: 'GM-1', type: 'gas', district: 'CENTRAL', path: [A, B], depthFeet: 3 },
+    ]);
+    const cut = ticket({ points: [destination(A, 150, 90)] }, { extent: '10 feet', depthFeet: 6 });
+    expect(screenTicket(cut, { network: deep, districts }).depthCleared).toBe(false);
+  });
+
+  it('cannot clear on depth when the plant has no recorded depth', () => {
+    const bore = ticket(
+      { points: [destination(A, 150, 90)] },
+      { extent: '10 feet', boring: true, depthFeet: 14 }
+    );
+    expect(screenTicket(bore, { network, districts }).depthCleared).toBe(false);
+  });
+
+  it('can be told not to check depth at all', () => {
+    const bore = ticket(
+      { points: [destination(A, 150, 90)] },
+      { extent: '10 feet', boring: true, depthFeet: 14 }
+    );
+    const result = screenTicket(bore, {
+      network,
+      districts,
+      policy: screenPolicy({ checkDepth: false }),
+    });
+    expect(result.hits[0].depthReason).toBe('depth was not checked');
+    expect(result.depthCleared).toBe(false);
+  });
+
+  it('never clears on depth when nothing is in the zone', () => {
+    const far = ticket({ points: [{ lat: 35.45, lon: -97.55 }] }, { extent: '10 feet' });
+    expect(screenTicket(far, { network, districts }).depthCleared).toBe(false);
+  });
+});
