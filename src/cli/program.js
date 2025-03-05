@@ -29,6 +29,8 @@ import { buildDamageRegister, registerTotals, writeDamageRegisterCsv } from '../
 import { damageSummary, topCounts } from '../damage/stats.js';
 import { coverageReport, suspectPlaces } from '../screening/coverage.js';
 import { checkNetwork, networkProfile } from '../network/quality.js';
+import { openBookFile, saveBookFile } from '../store/file.js';
+import { explanationDetail } from '../screening/explain.js';
 
 /**
  * Build the program.
@@ -488,6 +490,58 @@ export function buildProgram(options = {}) {
           for (const place of suspectPlaces(report)) {
             writers.warn(`${place.tickets.length} tickets came in for ${place.place}`);
           }
+          return 0;
+        })
+      );
+    });
+
+  program
+    .command('book')
+    .description('post a day of work into the desk journal')
+    .requiredOption('-c, --config <path>', 'path to the configuration file')
+    .requiredOption('-f, --feed <path>', 'path to the transmission feed')
+    .requiredOption('-j, --journal <path>', 'path to the desk journal')
+    .requiredOption('-a, --at <stamp>', 'the moment the work was done')
+    .requiredOption('-b, --by <who>', 'who did it')
+    .option('--dry-run', 'say what would be posted without writing anything', false)
+    .action((opts) => {
+      setExit(
+        runCommand(writers, () => {
+          const { desk } = openDesk(opts.config);
+          const { tickets } = readFeed(opts.feed, { skipBad: true });
+          const book = openBookFile(opts.journal);
+          const before = book.counts();
+          const session = answerBatch(tickets, { desk, at: opts.at, by: opts.by });
+
+          tickets.forEach((ticket, index) => {
+            book.addTicket(ticket);
+            book.note({
+              at: opts.at,
+              subject: ticket.number,
+              action: 'screened',
+              by: opts.by,
+              detail: explanationDetail(session.screenings[index]),
+            });
+          });
+          for (const posting of session.postings) book.addResponse(posting);
+
+          const after = book.counts();
+          writers.write(
+            joinSections([
+              renderHeading(`posting ${tickets.length} tickets`),
+              renderPairs({
+                excavations: `${before.excavations} to ${after.excavations}`,
+                responses: `${before.responses} to ${after.responses}`,
+                audit: `${before.audit} to ${after.audit}`,
+              }),
+            ])
+          );
+          if (opts.dryRun) {
+            writers.line('dry run, nothing was written');
+            return 0;
+          }
+          const path = saveBookFile(opts.journal, book);
+          writers.line(`wrote the journal to ${path}`);
           return 0;
         })
       );

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { join, dirname } from 'node:path';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -387,5 +388,102 @@ describe('coverage', () => {
   it('names the plant that never came up', async () => {
     const result = await invoke(['coverage', '-c', CONFIG, '-f', FEED, '--quality']);
     expect(result.out).toMatch(/WATER\s+\d/);
+  });
+});
+
+describe('book', () => {
+  function journalPath() {
+    return join(mkdtempSync(join(tmpdir(), 'toneline-book-')), 'journal.json');
+  }
+
+  it('posts a day into a new journal', async () => {
+    const path = journalPath();
+    const result = await invoke([
+      'book',
+      '-c',
+      CONFIG,
+      '-f',
+      FEED,
+      '-j',
+      path,
+      '-a',
+      '2024-03-14T08:00',
+      '-b',
+      'kmartel',
+    ]);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain('posting 4 tickets');
+    expect(result.out).toContain('0 to 4');
+    const journal = JSON.parse(readFileSync(path, 'utf8'));
+    expect(journal.tickets).toHaveLength(4);
+    expect(journal.audit).toHaveLength(4);
+    rmSync(dirname(path), { recursive: true, force: true });
+  });
+
+  it('writes nothing on a dry run', async () => {
+    const path = journalPath();
+    const result = await invoke([
+      'book',
+      '-c',
+      CONFIG,
+      '-f',
+      FEED,
+      '-j',
+      path,
+      '-a',
+      '2024-03-14T08:00',
+      '-b',
+      'kmartel',
+      '--dry-run',
+    ]);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain('dry run');
+    expect(existsSync(path)).toBe(false);
+    rmSync(dirname(path), { recursive: true, force: true });
+  });
+
+  it('appends onto a journal that is already there', async () => {
+    const path = journalPath();
+    const args = [
+      'book',
+      '-c',
+      CONFIG,
+      '-f',
+      FEED,
+      '-j',
+      path,
+      '-a',
+      '2024-03-14T08:00',
+      '-b',
+      'k',
+    ];
+    await invoke(args);
+    const second = await invoke(args);
+    expect(second.out).toContain('4 to 4');
+    const journal = JSON.parse(readFileSync(path, 'utf8'));
+    expect(journal.tickets).toHaveLength(4);
+    expect(journal.responses.length).toBeGreaterThan(4);
+    rmSync(dirname(path), { recursive: true, force: true });
+  });
+
+  it('refuses a journal it cannot read', async () => {
+    const path = journalPath();
+    writeFileSync(path, '{"version":99}');
+    const result = await invoke([
+      'book',
+      '-c',
+      CONFIG,
+      '-f',
+      FEED,
+      '-j',
+      path,
+      '-a',
+      '2024-03-14T08:00',
+      '-b',
+      'k',
+    ]);
+    expect(result.code).toBe(1);
+    expect(result.err).toContain('JOURNAL_INVALID');
+    rmSync(dirname(path), { recursive: true, force: true });
   });
 });
