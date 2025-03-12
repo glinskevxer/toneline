@@ -29,6 +29,12 @@ export class FacilityNetwork {
     this.cellDegrees = cellDegrees;
     this.facilities = new Map();
     this.cells = new Map();
+    // Bounds are asked for on every screening and never change once a run is
+    // in, so they are worked out at the door rather than per query. The padded
+    // box is kept as well, because removal has to visit the same cells the add
+    // wrote to and recomputing it there would have to agree exactly.
+    this.boxes = new Map();
+    this.paddedBoxes = new Map();
   }
 
   /** How many runs the network holds. */
@@ -43,7 +49,10 @@ export class FacilityNetwork {
       throw new FacilityError('the network already carries that facility id', { id: facility.id });
     }
     this.facilities.set(facility.id, facility);
-    for (const key of this.cellKeys(facilityBounds(facility))) {
+    this.boxes.set(facility.id, boundsOf(facility.path));
+    const padded = facilityBounds(facility);
+    this.paddedBoxes.set(facility.id, padded);
+    for (const key of this.cellKeys(padded)) {
       const bucket = this.cells.get(key);
       if (bucket) bucket.push(facility.id);
       else this.cells.set(key, [facility.id]);
@@ -61,7 +70,10 @@ export class FacilityNetwork {
     const held = this.facilities.get(wanted) ?? null;
     if (held === null) return null;
     this.facilities.delete(wanted);
-    for (const key of this.cellKeys(facilityBounds(held))) {
+    const padded = this.paddedBoxes.get(wanted) ?? facilityBounds(held);
+    this.boxes.delete(wanted);
+    this.paddedBoxes.delete(wanted);
+    for (const key of this.cellKeys(padded)) {
       const bucket = this.cells.get(key);
       if (!bucket) continue;
       const kept = bucket.filter((entry) => entry !== wanted);
@@ -106,11 +118,15 @@ export class FacilityNetwork {
     return this.all().filter((facility) => (facility.district ?? '').toUpperCase() === wanted);
   }
 
+  /** The bounds of one run, worked out when it was added. */
+  boundsOfFacility(id) {
+    return this.boxes.get(String(id ?? '').toUpperCase()) ?? null;
+  }
+
   /** Bounds covering the whole network, or null when it is empty. */
   bounds() {
     let box = null;
-    for (const facility of this.facilities.values()) {
-      const own = boundsOf(facility.path);
+    for (const own of this.boxes.values()) {
       box = box === null ? own : boundsUnion(box, own);
     }
     return box;
@@ -131,6 +147,26 @@ export class FacilityNetwork {
     return keys;
   }
 
+  /**
+   * How the index is sitting.
+   *
+   * A grid is only worth having while the average cell holds a handful of runs.
+   * These are the numbers to look at when a network grows and screening slows
+   * down, because the fix is the cell size and nothing else.
+   */
+  stats() {
+    const occupancies = [...this.cells.values()].map((bucket) => bucket.length);
+    const total = occupancies.reduce((sum, count) => sum + count, 0);
+    return {
+      facilities: this.facilities.size,
+      cells: this.cells.size,
+      entries: total,
+      averagePerCell: this.cells.size === 0 ? 0 : total / this.cells.size,
+      worstCell: occupancies.length === 0 ? 0 : Math.max(...occupancies),
+      cellDegrees: this.cellDegrees,
+    };
+  }
+
   /** Candidate facilities whose cells a bounds box touches. */
   candidates(box) {
     const seen = new Set();
@@ -147,7 +183,9 @@ export class FacilityNetwork {
 
   /** Facilities whose own bounds overlap the box. */
   within(box) {
-    return this.candidates(box).filter((facility) => boundsOverlap(boundsOf(facility.path), box));
+    return this.candidates(box).filter((facility) =>
+      boundsOverlap(this.boxes.get(facility.id), box)
+    );
   }
 
   /**

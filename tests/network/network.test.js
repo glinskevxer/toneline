@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { FacilityNetwork, buildNetwork } from '../../src/network/network.js';
 import { FacilityError, buildFacility } from '../../src/network/facility.js';
 import { destination } from '../../src/geo/point.js';
+import { boundsOf } from '../../src/geo/bbox.js';
 
 const A = { lat: 35.4676, lon: -97.5164 };
 const B = destination(A, 300, 90);
@@ -177,5 +178,78 @@ describe('remove and replace', () => {
     const network = buildNetwork(RECORDS);
     const built = buildFacility({ id: 'GM-1', type: 'gas', abandoned: true, path: [A, B] });
     expect(network.replace(built).abandoned).toBe(true);
+  });
+});
+
+describe('the bounds cache', () => {
+  it('remembers the bounds of every run it holds', () => {
+    const network = buildNetwork(RECORDS);
+    expect(network.boundsOfFacility('gm-1')).toEqual(boundsOf([A, B]));
+    expect(network.boundsOfFacility('nothing')).toBeNull();
+  });
+
+  it('forgets them again when a run is removed', () => {
+    const network = buildNetwork(RECORDS);
+    network.remove('GM-1');
+    expect(network.boundsOfFacility('GM-1')).toBeNull();
+    expect(network.boxes.size).toBe(2);
+    expect(network.paddedBoxes.size).toBe(2);
+  });
+
+  it('replaces them when a run moves', () => {
+    const network = buildNetwork(RECORDS);
+    const moved = destination(A, 900, 0);
+    network.replace({ id: 'GM-1', type: 'gas', path: [moved, destination(moved, 200, 90)] });
+    expect(network.boundsOfFacility('GM-1').south).toBeCloseTo(moved.lat, 6);
+    expect(network.boxes.size).toBe(3);
+  });
+
+  it('keeps the whole network bounds in step with the cache', () => {
+    const network = buildNetwork(RECORDS);
+    const before = network.bounds();
+    network.remove('WT-1');
+    const after = network.bounds();
+    expect(after.north).toBeLessThan(before.north);
+  });
+
+  it('leaves no stale cell behind after a remove', () => {
+    const network = buildNetwork(RECORDS);
+    const cellsBefore = network.cells.size;
+    network.remove('GM-1');
+    network.remove('EL-1');
+    network.remove('WT-1');
+    expect(network.cells.size).toBeLessThan(cellsBefore);
+    expect(network.cells.size).toBe(0);
+  });
+});
+
+describe('index stats', () => {
+  it('reports how the grid is sitting', () => {
+    const network = buildNetwork(RECORDS);
+    const stats = network.stats();
+    expect(stats.facilities).toBe(3);
+    expect(stats.cells).toBeGreaterThan(0);
+    expect(stats.entries).toBeGreaterThanOrEqual(stats.facilities);
+    expect(stats.averagePerCell).toBeGreaterThan(0);
+    expect(stats.cellDegrees).toBe(0.005);
+  });
+
+  it('reports an empty index without dividing by zero', () => {
+    expect(buildNetwork([]).stats()).toEqual({
+      facilities: 0,
+      cells: 0,
+      entries: 0,
+      averagePerCell: 0,
+      worstCell: 0,
+      cellDegrees: 0.005,
+    });
+  });
+
+  it('puts more runs in each cell as the cells grow', () => {
+    const tight = new FacilityNetwork({ cellDegrees: 0.001 });
+    const loose = new FacilityNetwork({ cellDegrees: 0.05 });
+    tight.addAll(RECORDS);
+    loose.addAll(RECORDS);
+    expect(loose.stats().cells).toBeLessThan(tight.stats().cells);
   });
 });
