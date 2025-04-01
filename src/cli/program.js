@@ -31,6 +31,8 @@ import { coverageReport, suspectPlaces } from '../screening/coverage.js';
 import { checkNetwork, networkProfile } from '../network/quality.js';
 import { openBookFile, saveBookFile } from '../store/file.js';
 import { explanationDetail } from '../screening/explain.js';
+import { monthlyPack, packHeadlines, packLines } from '../reporting/monthly.js';
+import { evaluateBatch } from '../response/compliance.js';
 
 /**
  * Build the program.
@@ -542,6 +544,66 @@ export function buildProgram(options = {}) {
           }
           const path = saveBookFile(opts.journal, book);
           writers.line(`wrote the journal to ${path}`);
+          return 0;
+        })
+      );
+    });
+
+  program
+    .command('month')
+    .description('assemble the monthly pack')
+    .requiredOption('-c, --config <path>', 'path to the configuration file')
+    .requiredOption('-f, --feed <path>', 'path to the transmission feed')
+    .requiredOption('-p, --period <month>', 'the month to pack, as YYYY-MM')
+    .requiredOption('-a, --at <stamp>', 'the moment the desk answered the feed')
+    .option('-d, --damages <path>', 'path to the damage extract')
+    .option('--json', 'print the pack as json instead of lines', false)
+    .action((opts) => {
+      setExit(
+        runCommand(writers, () => {
+          const { desk } = openDesk(opts.config);
+          const { tickets } = readFeed(opts.feed, { skipBad: true });
+          const damages = opts.damages
+            ? readDamageCsv(readText(opts.damages), { skipBad: true }).damages
+            : [];
+          const session = answerBatch(tickets, { desk, at: opts.at, by: 'month' });
+          const compliance = evaluateBatch(
+            tickets.map((ticket, index) => ({
+              ticket,
+              responses: session.postings,
+              screening: session.screenings[index],
+            })),
+            { at: opts.at, ...schedulingContext(desk) }
+          );
+          const pack = monthlyPack({
+            period: opts.period,
+            desk,
+            tickets,
+            responses: session.postings,
+            compliance,
+            damages,
+          });
+          if (opts.json) {
+            writers.line(JSON.stringify(pack, null, 2));
+            return 0;
+          }
+          writers.write(
+            joinSections([
+              renderHeading(`monthly pack ${pack.period}`),
+              `${packLines(pack).join('\n')}\n`,
+              renderPairs(packHeadlines(pack)),
+              renderTable(
+                pack.incoming.worst.map((entry) => ({
+                  warning: entry.warning,
+                  count: entry.count,
+                })),
+                [
+                  { key: 'warning', width: 56 },
+                  { key: 'count', align: 'right' },
+                ]
+              ),
+            ])
+          );
           return 0;
         })
       );

@@ -487,3 +487,60 @@ describe('book', () => {
     rmSync(dirname(path), { recursive: true, force: true });
   });
 });
+
+describe('month', () => {
+  const DAMAGES = join(examples, 'damages-2024.csv');
+
+  it('packs the month', async () => {
+    const result = await invoke([
+      'month',
+      '-c',
+      CONFIG,
+      '-f',
+      FEED,
+      '-p',
+      '2024-03',
+      '-a',
+      '2024-03-20T08:00',
+    ]);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain('monthly pack 2024-03');
+    expect(result.out).toContain('Cross Timbers Gas and Water, 2024-03');
+    expect(result.out).toContain('on time');
+  });
+
+  it('takes the damages into the pack', async () => {
+    const result = await invoke([
+      'month',
+      '-c',
+      CONFIG,
+      '-f',
+      FEED,
+      '-p',
+      '2024-03',
+      '-a',
+      '2024-03-20T08:00',
+      '-d',
+      DAMAGES,
+      '--json',
+    ]);
+    const pack = JSON.parse(result.out);
+    expect(pack.damages.damages).toBe(1);
+    expect(pack.tickets).toBe(4);
+  });
+
+  it('refuses a period that is not a month', async () => {
+    const result = await invoke([
+      'month',
+      '-c',
+      CONFIG,
+      '-f',
+      FEED,
+      '-p',
+      'march',
+      '-a',
+      '2024-03-20T08:00',
+    ]);
+    expect(result.code).toBe(1);
+  });
+});
