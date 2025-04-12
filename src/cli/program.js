@@ -33,6 +33,7 @@ import { openBookFile, saveBookFile } from '../store/file.js';
 import { explanationDetail } from '../screening/explain.js';
 import { monthlyPack, packHeadlines, packLines } from '../reporting/monthly.js';
 import { evaluateBatch } from '../response/compliance.js';
+import { deskCollection, networkCollection, ticketCollection } from '../io/geojson.js';
 
 /**
  * Build the program.
@@ -604,6 +605,43 @@ export function buildProgram(options = {}) {
               ),
             ])
           );
+          return 0;
+        })
+      );
+    });
+
+  program
+    .command('map')
+    .description('write the network and the tickets out as geojson')
+    .requiredOption('-c, --config <path>', 'path to the configuration file')
+    .option('-f, --feed <path>', 'path to the transmission feed')
+    .option('-o, --out <path>', 'write the geojson to this file')
+    .option('--only <what>', 'network, tickets or both', 'both')
+    .action((opts) => {
+      setExit(
+        runCommand(writers, () => {
+          const { desk } = openDesk(opts.config);
+          const tickets = opts.feed ? readFeed(opts.feed, { skipBad: true }).tickets : [];
+          const only = String(opts.only).toLowerCase();
+          if (!['network', 'tickets', 'both'].includes(only)) {
+            writers.warn(`--only must be network, tickets or both, not ${opts.only}`);
+            return 1;
+          }
+          if (only !== 'network' && tickets.length === 0 && !opts.feed) {
+            writers.warn('no feed was given, so there are no tickets to draw');
+          }
+          const site = desk.policies.site;
+          let geo;
+          if (only === 'network') geo = networkCollection(desk.network);
+          else if (only === 'tickets') geo = ticketCollection(tickets, { site });
+          else geo = deskCollection(desk.network, tickets, { site });
+
+          if (opts.out) {
+            const path = writeJson(opts.out, geo);
+            writers.line(`wrote ${geo.features.length} features to ${path}`);
+            return 0;
+          }
+          writers.line(JSON.stringify(geo));
           return 0;
         })
       );

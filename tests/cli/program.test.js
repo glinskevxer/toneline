@@ -544,3 +544,47 @@ describe('month', () => {
     expect(result.code).toBe(1);
   });
 });
+
+describe('map', () => {
+  it('writes the network and the tickets together', async () => {
+    const result = await invoke(['map', '-c', CONFIG, '-f', FEED]);
+    expect(result.code).toBe(0);
+    const geo = JSON.parse(result.out);
+    expect(geo.type).toBe('FeatureCollection');
+    expect(geo.features.length).toBeGreaterThan(10);
+  });
+
+  it('writes only the network when asked', async () => {
+    const result = await invoke(['map', '-c', CONFIG, '--only', 'network']);
+    const geo = JSON.parse(result.out);
+    expect(geo.features).toHaveLength(10);
+    expect(geo.features.every((feature) => feature.geometry.type === 'LineString')).toBe(true);
+  });
+
+  it('writes only the tickets when asked', async () => {
+    const result = await invoke(['map', '-c', CONFIG, '-f', FEED, '--only', 'tickets']);
+    const geo = JSON.parse(result.out);
+    expect(geo.features.every((feature) => feature.geometry.type === 'Polygon')).toBe(true);
+  });
+
+  it('warns when there is nothing to draw', async () => {
+    const result = await invoke(['map', '-c', CONFIG, '--only', 'tickets']);
+    expect(result.code).toBe(0);
+    expect(result.err).toContain('no feed was given');
+  });
+
+  it('refuses an option it does not understand', async () => {
+    const result = await invoke(['map', '-c', CONFIG, '--only', 'everything']);
+    expect(result.code).toBe(1);
+    expect(result.err).toContain('--only must be');
+  });
+
+  it('writes to a file when asked', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'toneline-prog-'));
+    const path = join(dir, 'desk.geojson');
+    const result = await invoke(['map', '-c', CONFIG, '-f', FEED, '-o', path]);
+    expect(result.out).toContain('features to');
+    expect(JSON.parse(readFileSync(path, 'utf8')).type).toBe('FeatureCollection');
+    rmSync(dir, { recursive: true, force: true });
+  });
+});
