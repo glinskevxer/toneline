@@ -18,7 +18,7 @@ function namesFrom(register) {
 
 describe('the command groups', () => {
   it('registers the desk commands', () => {
-    expect(namesFrom(registerDeskCommands)).toEqual(['validate', 'screen', 'respond']);
+    expect(namesFrom(registerDeskCommands)).toEqual(['validate', 'screen', 'respond', 'find']);
   });
 
   it('registers the work commands', () => {
@@ -44,6 +44,7 @@ describe('the whole program', () => {
       'brief',
       'coverage',
       'damage',
+      'find',
       'invoice',
       'map',
       'month',

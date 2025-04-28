@@ -588,3 +588,39 @@ describe('map', () => {
     rmSync(dir, { recursive: true, force: true });
   });
 });
+
+describe('find', () => {
+  it('finds a ticket by part of its number', async () => {
+    const result = await invoke(['find', '-c', CONFIG, '-f', FEED, '-n', '000502']);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain('1 tickets matched');
+    expect(result.out).toContain('B240314000502');
+  });
+
+  it('finds by street however it is spelled', async () => {
+    const result = await invoke(['find', '-c', CONFIG, '-f', FEED, '-s', 'northwest 23 street']);
+    expect(result.out).toContain('B240313000418');
+  });
+
+  it('finds by excavator', async () => {
+    const result = await invoke(['find', '-c', CONFIG, '-f', FEED, '-e', 'sooner']);
+    expect(result.out).toContain('B240314000502');
+  });
+
+  it('says plainly when nothing matched', async () => {
+    const result = await invoke(['find', '-c', CONFIG, '-f', FEED, '-n', 'zzz']);
+    expect(result.code).toBe(0);
+    expect(result.err).toContain('nothing matched');
+  });
+
+  it('explains the screening when asked', async () => {
+    const result = await invoke(['find', '-c', CONFIG, '-f', FEED, '-n', '000418', '--explain']);
+    expect(result.out).toContain('ticket B240313000418');
+    expect(result.out).toContain('family:');
+  });
+
+  it('returns nothing when no term was given', async () => {
+    const result = await invoke(['find', '-c', CONFIG, '-f', FEED]);
+    expect(result.err).toContain('nothing matched');
+  });
+});

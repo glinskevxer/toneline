@@ -9,6 +9,9 @@
 export { makeWriters, openDesk, readFeed, runCommand } from '../context.js';
 export { expiryContext, schedulingContext, screeningContext } from '../../config/load.js';
 export { screenTicket } from '../../screening/screen.js';
+export { search } from '../../ticket/search.js';
+export { explainScreening } from '../../screening/explain.js';
+export { familyOf } from '../../ticket/relate.js';
 export { explanationDetail } from '../../screening/explain.js';
 export { recommendResponse } from '../../response/decide.js';
 export { answerBatch, sessionSummary } from '../../response/session.js';

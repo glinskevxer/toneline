@@ -138,4 +138,56 @@ export function registerDeskCommands(program, { writers, setExit }) {
         })
       );
     });
+  program
+    .command('find')
+    .description('find a ticket from part of a number, a street or an excavator')
+    .requiredOption('-c, --config <path>', 'path to the configuration file')
+    .requiredOption('-f, --feed <path>', 'path to the transmission feed')
+    .option('-n, --number <fragment>', 'part of a ticket number')
+    .option('-s, --street <name>', 'a street the dig is on')
+    .option('-e, --excavator <name>', 'part of the excavator name')
+    .option('--type <code>', 'a ticket type')
+    .option('--status <code>', 'a ticket status')
+    .option('--explain', 'explain the screening of each match', false)
+    .action((opts) => {
+      setExit(
+        tools.runCommand(writers, () => {
+          const { desk } = tools.openDesk(opts.config);
+          const { tickets } = tools.readFeed(opts.feed, { skipBad: true });
+          const found = tools.search(tickets, {
+            number: opts.number,
+            street: opts.street,
+            excavator: opts.excavator,
+            type: opts.type,
+            status: opts.status,
+          });
+          if (found.length === 0) {
+            writers.warn('nothing matched');
+            return 0;
+          }
+          writers.write(
+            tools.joinSections([
+              tools.renderHeading(`${found.length} tickets matched`),
+              tools.renderTable(found, [
+                { key: 'number', label: 'ticket' },
+                { key: 'type' },
+                { key: 'takenAt', label: 'taken' },
+                { key: 'address', width: 28 },
+              ]),
+            ])
+          );
+          if (opts.explain) {
+            const context = tools.screeningContext(desk);
+            for (const ticket of found) {
+              const screening = tools.screenTicket(ticket, context);
+              const family = tools.familyOf(tickets, ticket.number);
+              writers.line(tools.explainScreening(screening).join('\n'));
+              writers.line(`family: ${family.members.join(' ')}`);
+              writers.line();
+            }
+          }
+          return 0;
+        })
+      );
+    });
 }
