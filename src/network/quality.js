@@ -8,6 +8,7 @@
  */
 
 import { boundsDiagonalMetres, boundsOf } from '../geo/bbox.js';
+import { aboveZero, definePolicy } from '../config/policies.js';
 import { segmentLengthMetres } from '../geo/segment.js';
 import { facilityType } from '../ticket/types.js';
 import { facilityLengthMetres } from './facility.js';
@@ -22,9 +23,13 @@ export const DEFAULT_QUALITY_POLICY = Object.freeze({
 });
 
 /** Merge a partial quality policy over the defaults. */
-export function qualityPolicy(overrides = {}) {
-  return Object.freeze({ ...DEFAULT_QUALITY_POLICY, ...overrides });
-}
+export const qualityPolicy = definePolicy(DEFAULT_QUALITY_POLICY, {
+  maxRunMetres: aboveZero,
+  maxSegmentMetres: aboveZero,
+  minRunMetres: aboveZero,
+  maxDepthFeet: aboveZero,
+  minDepthFeet: aboveZero,
+});
 
 /**
  * Check one facility.

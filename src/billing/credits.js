@@ -9,7 +9,7 @@
  */
 
 import { deepFreeze } from '../core/fields.js';
-import { BillingError } from './rates.js';
+import { atOrAboveZero, definePolicy, share } from '../config/policies.js';
 
 /** The credit terms this desk works to. */
 export const DEFAULT_CREDIT_TERMS = Object.freeze({
@@ -21,20 +21,13 @@ export const DEFAULT_CREDIT_TERMS = Object.freeze({
 });
 
 /** Merge partial credit terms over the defaults. */
-export function creditTerms(overrides = {}) {
-  const terms = { ...DEFAULT_CREDIT_TERMS, ...overrides };
-  for (const [key, value] of Object.entries(terms)) {
-    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
-      throw new BillingError('credit terms must be numbers at or above zero', { key, value });
-    }
-  }
-  if (terms.capShare > 1) {
-    throw new BillingError('the credit cap cannot be more than the whole invoice', {
-      capShare: terms.capShare,
-    });
-  }
-  return Object.freeze(terms);
-}
+export const creditTerms = definePolicy(DEFAULT_CREDIT_TERMS, {
+  lateShare: atOrAboveZero,
+  missedShare: atOrAboveZero,
+  incompleteShare: atOrAboveZero,
+  graceMinutes: atOrAboveZero,
+  capShare: share,
+});
 
 /**
  * The share of a line that is credited back for one compliance record.

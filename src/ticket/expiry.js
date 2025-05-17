@@ -7,7 +7,7 @@
  * has to ask for the site to be marked again.
  */
 
-import { ScheduleError } from '../core/errors.js';
+import { definePolicy, wholeFromOne } from '../config/policies.js';
 import { addDays, compareDates, daysBetween } from '../time/date.js';
 import { dateOf } from '../time/stamp.js';
 import { effectiveLawfulStart, expiryFrom } from './lawfulStart.js';
@@ -26,22 +26,15 @@ export const DEFAULT_LIFE_POLICY = Object.freeze({
 });
 
 /** Merge a partial policy over the defaults. */
-export function lifePolicy(overrides = {}) {
-  const policy = {
-    ...DEFAULT_LIFE_POLICY,
-    ...overrides,
-    lifeDaysByType: { ...DEFAULT_LIFE_POLICY.lifeDaysByType, ...(overrides.lifeDaysByType ?? {}) },
-  };
-  for (const key of ['defaultLifeDays', 'markLifeDays', 'renewalWindowDays']) {
-    if (!Number.isInteger(policy[key]) || policy[key] < 1) {
-      throw new ScheduleError('life policy values must be whole days of one or more', {
-        key,
-        value: policy[key],
-      });
-    }
-  }
-  return Object.freeze(policy);
-}
+export const lifePolicy = definePolicy(
+  DEFAULT_LIFE_POLICY,
+  {
+    defaultLifeDays: wholeFromOne,
+    markLifeDays: wholeFromOne,
+    renewalWindowDays: wholeFromOne,
+  },
+  { nested: ['lifeDaysByType'] }
+);
 
 /** How many calendar days a ticket of this type is good for. */
 export function lifeDaysFor(type, policy = DEFAULT_LIFE_POLICY) {

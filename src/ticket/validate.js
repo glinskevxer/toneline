@@ -9,6 +9,7 @@
  */
 
 import { isReachable } from './record.js';
+import { aboveZero, definePolicy, wholeFromOne } from '../config/policies.js';
 import { extentFootage, workAreaFor, workAreaSquareFeet } from './site.js';
 import { ticketType } from './types.js';
 
@@ -20,9 +21,11 @@ export const DEFAULT_QUALITY_RULES = Object.freeze({
 });
 
 /** Merge partial rules over the defaults. */
-export function qualityRules(overrides = {}) {
-  return Object.freeze({ ...DEFAULT_QUALITY_RULES, ...overrides });
-}
+export const qualityRules = definePolicy(DEFAULT_QUALITY_RULES, {
+  whiteLineOverFeet: aboveZero,
+  hugeAreaSquareFeet: aboveZero,
+  minExtentWords: wholeFromOne,
+});
 
 /**
  * Check one ticket.

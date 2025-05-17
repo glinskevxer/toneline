@@ -9,6 +9,7 @@
  */
 
 import { TicketError } from '../core/errors.js';
+import { atOrAboveZero, definePolicy, wholeFromZero } from '../config/policies.js';
 import { deepFreeze, optionalString, requireString } from '../core/fields.js';
 import { addDays, compareDates } from '../time/date.js';
 import { dateOf, isStamp } from '../time/stamp.js';
@@ -22,15 +23,11 @@ export const DEFAULT_REMARK_POLICY = Object.freeze({
 });
 
 /** Merge a partial remark policy over the defaults. */
-export function remarkPolicy(overrides = {}) {
-  const policy = { ...DEFAULT_REMARK_POLICY, ...overrides };
-  if (!Number.isInteger(policy.freeRemarks) || policy.freeRemarks < 0) {
-    throw new TicketError('the free remark count must be a whole number at or above zero', {
-      freeRemarks: policy.freeRemarks,
-    });
-  }
-  return Object.freeze(policy);
-}
+export const remarkPolicy = definePolicy(DEFAULT_REMARK_POLICY, {
+  freeRemarks: wholeFromZero,
+  chargeableRate: atOrAboveZero,
+  minimumNoticeHours: atOrAboveZero,
+});
 
 /** Build a remark request. */
 export function buildRemark(raw) {

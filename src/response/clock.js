@@ -9,6 +9,7 @@
  */
 
 import { ScheduleError } from '../core/errors.js';
+import { definePolicy, wholeFromZero } from '../config/policies.js';
 import { Calendar } from '../time/calendar.js';
 import { WorkSchedule } from '../time/workhours.js';
 import { addHours, compareStamps, minutesBetween } from '../time/stamp.js';
@@ -22,15 +23,9 @@ export const DEFAULT_CLOCK_POLICY = Object.freeze({
 });
 
 /** Merge a partial clock policy over the defaults. */
-export function clockPolicy(overrides = {}) {
-  const policy = { ...DEFAULT_CLOCK_POLICY, ...overrides };
-  if (!Number.isInteger(policy.graceMinutes) || policy.graceMinutes < 0) {
-    throw new ScheduleError('grace must be a whole number of minutes at or above zero', {
-      graceMinutes: policy.graceMinutes,
-    });
-  }
-  return Object.freeze(policy);
-}
+export const clockPolicy = definePolicy(DEFAULT_CLOCK_POLICY, {
+  graceMinutes: wholeFromZero,
+});
 
 /**
  * When a response is due on a ticket.

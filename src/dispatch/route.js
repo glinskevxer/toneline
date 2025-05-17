@@ -9,6 +9,7 @@
  */
 
 import { TonelineError } from '../core/errors.js';
+import { aboveZero, definePolicy } from '../config/policies.js';
 import { distanceMetres, toPoint } from '../geo/point.js';
 import { compareStamps, isStamp, minutesBetween } from '../time/stamp.js';
 
@@ -27,15 +28,11 @@ export const DEFAULT_ROUTE_POLICY = Object.freeze({
 });
 
 /** Merge a partial route policy over the defaults. */
-export function routePolicy(overrides = {}) {
-  const policy = { ...DEFAULT_ROUTE_POLICY, ...overrides };
-  for (const [key, value] of Object.entries(policy)) {
-    if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
-      throw new RouteError('route policy values must be numbers above zero', { key, value });
-    }
-  }
-  return Object.freeze(policy);
-}
+export const routePolicy = definePolicy(DEFAULT_ROUTE_POLICY, {
+  slackMinutes: aboveZero,
+  averageSpeedKph: aboveZero,
+  minutesOnSite: aboveZero,
+});
 
 /** Build one stop, which is a place with a deadline on it. */
 export function buildStop(raw) {

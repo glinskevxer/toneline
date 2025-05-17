@@ -9,6 +9,7 @@
  */
 
 import { deepFreeze } from '../core/fields.js';
+import { atOrAboveZero, definePolicy } from '../config/policies.js';
 
 /** How much slack to allow on a recorded depth. */
 export const DEFAULT_DEPTH_POLICY = Object.freeze({
@@ -19,9 +20,12 @@ export const DEFAULT_DEPTH_POLICY = Object.freeze({
 });
 
 /** Merge a partial depth policy over the defaults. */
-export function depthPolicy(overrides = {}) {
-  return Object.freeze({ ...DEFAULT_DEPTH_POLICY, ...overrides });
-}
+export const depthPolicy = definePolicy(DEFAULT_DEPTH_POLICY, {
+  facilityToleranceFeet: atOrAboveZero,
+  digToleranceFeet: atOrAboveZero,
+  assumeDigFeet: atOrAboveZero,
+  clearBoreSeparationFeet: atOrAboveZero,
+});
 
 /**
  * Compare the depth of a dig with the depth of a facility.

@@ -9,6 +9,7 @@
  */
 
 import { deepFreeze } from '../core/fields.js';
+import { definePolicy, wholeFromZero } from '../config/policies.js';
 import { minutesBetween } from '../time/stamp.js';
 import { responseDueAt } from '../response/clock.js';
 import { districtByCode } from '../network/district.js';
@@ -27,9 +28,13 @@ export const DEFAULT_ESCALATION_POLICY = Object.freeze({
 });
 
 /** Merge a partial escalation policy over the defaults. */
-export function escalationPolicy(overrides = {}) {
-  return Object.freeze({ ...DEFAULT_ESCALATION_POLICY, ...overrides });
-}
+export const escalationPolicy = definePolicy(DEFAULT_ESCALATION_POLICY, {
+  emergencyAcknowledgeMinutes: wholeFromZero,
+  emergencyManagerMinutes: wholeFromZero,
+  warnMinutesBeforeDue: wholeFromZero,
+  breachManagerMinutes: wholeFromZero,
+  criticalUnassignedMinutes: wholeFromZero,
+});
 
 /** The higher of two levels. */
 export function worseLevel(left, right) {

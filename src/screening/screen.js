@@ -8,6 +8,7 @@
  */
 
 import { deepFreeze } from '../core/fields.js';
+import { atOrAboveZero, definePolicy } from '../config/policies.js';
 import { districtsForRing, isOurMember } from '../network/district.js';
 import { toleranceFeetOf, toleranceMetresOf } from '../network/facility.js';
 import { feetToMetres, metresToFeet } from '../geo/point.js';
@@ -23,9 +24,9 @@ export const DEFAULT_SCREEN_POLICY = Object.freeze({
 });
 
 /** Merge a partial screen policy over the defaults. */
-export function screenPolicy(overrides = {}) {
-  return Object.freeze({ ...DEFAULT_SCREEN_POLICY, ...overrides });
-}
+export const screenPolicy = definePolicy(DEFAULT_SCREEN_POLICY, {
+  noticeMarginFeet: atOrAboveZero,
+});
 
 /**
  * Screen one ticket against the network.

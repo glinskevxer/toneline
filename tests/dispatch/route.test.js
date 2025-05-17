@@ -11,6 +11,7 @@ import {
   overdueStops,
 } from '../../src/dispatch/route.js';
 import { destination } from '../../src/geo/point.js';
+import { PolicyError } from '../../src/config/policies.js';
 
 const BASE = { lat: 35.4676, lon: -97.5164 };
 const NEAR = destination(BASE, 500, 90);
@@ -28,7 +29,7 @@ describe('routePolicy', () => {
   });
 
   it('rejects a value that is not above zero', () => {
-    expect(() => routePolicy({ slackMinutes: 0 })).toThrow(RouteError);
+    expect(() => routePolicy({ slackMinutes: 0 })).toThrow(PolicyError);
     expect(() => routePolicy({ averageSpeedKph: 'fast' })).toThrow(/above zero/);
   });
 });

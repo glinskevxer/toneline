@@ -11,6 +11,7 @@ import {
 import { buildTicket } from '../../src/ticket/record.js';
 import { buildResponse } from '../../src/response/post.js';
 import { TicketError } from '../../src/core/errors.js';
+import { PolicyError } from '../../src/config/policies.js';
 import { Calendar } from '../../src/time/calendar.js';
 
 const calendar = new Calendar();
@@ -51,7 +52,7 @@ describe('remarkPolicy', () => {
   });
 
   it('rejects a bad free count', () => {
-    expect(() => remarkPolicy({ freeRemarks: -1 })).toThrow(TicketError);
+    expect(() => remarkPolicy({ freeRemarks: -1 })).toThrow(PolicyError);
     expect(() => remarkPolicy({ freeRemarks: 1.5 })).toThrow(/whole number/);
   });
 });

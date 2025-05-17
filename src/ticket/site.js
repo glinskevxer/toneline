@@ -9,6 +9,7 @@
  */
 
 import { TicketError } from '../core/errors.js';
+import { aboveZero, definePolicy } from '../config/policies.js';
 import { bufferGeometry, discRing } from '../geo/buffer.js';
 import { feetToMetres, toPoint } from '../geo/point.js';
 import { ringAreaSquareFeet, ringCentroid, toRing } from '../geo/polygon.js';
@@ -21,15 +22,11 @@ export const DEFAULT_SITE_POLICY = Object.freeze({
 });
 
 /** Merge a partial site policy over the defaults. */
-export function sitePolicy(overrides = {}) {
-  const policy = { ...DEFAULT_SITE_POLICY, ...overrides };
-  for (const [key, value] of Object.entries(policy)) {
-    if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
-      throw new TicketError('site policy sizes must be numbers above zero', { key, value });
-    }
-  }
-  return Object.freeze(policy);
-}
+export const sitePolicy = definePolicy(DEFAULT_SITE_POLICY, {
+  pointRadiusFeet: aboveZero,
+  corridorHalfWidthFeet: aboveZero,
+  maxRadiusFeet: aboveZero,
+});
 
 const FOOTAGE = /(\d[\d,]*)\s*(?:feet|foot|ft\b)/i;
 

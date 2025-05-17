@@ -8,6 +8,7 @@
  */
 
 import { deepFreeze, optionalString, requireString } from '../core/fields.js';
+import { definePolicy, wholeFromOne } from '../config/policies.js';
 import { addDays, compareDates, daysBetween } from '../time/date.js';
 import { dateOf, isStamp } from '../time/stamp.js';
 import { DamageError, isReportable } from './report.js';
@@ -20,9 +21,10 @@ export const DEFAULT_INVESTIGATION_POLICY = Object.freeze({
 });
 
 /** Merge a partial investigation policy over the defaults. */
-export function investigationPolicy(overrides = {}) {
-  return Object.freeze({ ...DEFAULT_INVESTIGATION_POLICY, ...overrides });
-}
+export const investigationPolicy = definePolicy(DEFAULT_INVESTIGATION_POLICY, {
+  reportableDays: wholeFromOne,
+  ordinaryDays: wholeFromOne,
+});
 
 /** The steps an investigation walks, in order. */
 export const INVESTIGATION_STEPS = Object.freeze([

@@ -8,6 +8,7 @@
  */
 
 import { normaliseStreet, placeKey } from '../text/address.js';
+import { definePolicy, share, wholeFromZero } from '../config/policies.js';
 import { daysBetween } from '../time/date.js';
 import { dateOf } from '../time/stamp.js';
 import { ringBounds } from '../geo/polygon.js';
@@ -26,9 +27,14 @@ export const DEFAULT_DUPLICATE_POLICY = Object.freeze({
 });
 
 /** Merge a partial duplicate policy over the defaults. */
-export function duplicatePolicy(overrides = {}) {
-  return Object.freeze({ ...DEFAULT_DUPLICATE_POLICY, ...overrides });
-}
+export const duplicatePolicy = definePolicy(DEFAULT_DUPLICATE_POLICY, {
+  withinDays: wholeFromZero,
+  siteWeight: share,
+  excavatorWeight: share,
+  workTypeWeight: share,
+  geometryWeight: share,
+  threshold: share,
+});
 
 /** True when two tickets are close enough in time to be the same dig. */
 export function withinWindow(left, right, policy = DEFAULT_DUPLICATE_POLICY) {

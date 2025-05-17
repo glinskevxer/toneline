@@ -11,7 +11,7 @@ import {
   workAreaCentre,
 } from '../../src/ticket/site.js';
 import { buildTicket } from '../../src/ticket/record.js';
-import { TicketError } from '../../src/core/errors.js';
+import { PolicyError } from '../../src/config/policies.js';
 import { destination, distanceFeet } from '../../src/geo/point.js';
 import { ringContains } from '../../src/geo/polygon.js';
 
@@ -41,7 +41,7 @@ describe('sitePolicy', () => {
   });
 
   it('rejects a size that is not a positive number', () => {
-    expect(() => sitePolicy({ pointRadiusFeet: 0 })).toThrow(TicketError);
+    expect(() => sitePolicy({ pointRadiusFeet: 0 })).toThrow(PolicyError);
     expect(() => sitePolicy({ pointRadiusFeet: 'wide' })).toThrow(/above zero/);
   });
 });

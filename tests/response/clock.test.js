@@ -12,7 +12,7 @@ import {
 import { buildTicket } from '../../src/ticket/record.js';
 import { Calendar } from '../../src/time/calendar.js';
 import { WorkSchedule } from '../../src/time/workhours.js';
-import { ScheduleError } from '../../src/core/errors.js';
+import { PolicyError } from '../../src/config/policies.js';
 
 const calendar = new Calendar();
 const schedule = new WorkSchedule({ calendar });
@@ -34,8 +34,8 @@ describe('clockPolicy', () => {
   });
 
   it('rejects a bad grace', () => {
-    expect(() => clockPolicy({ graceMinutes: -1 })).toThrow(ScheduleError);
-    expect(() => clockPolicy({ graceMinutes: 1.5 })).toThrow(/whole number of minutes/);
+    expect(() => clockPolicy({ graceMinutes: -1 })).toThrow(PolicyError);
+    expect(() => clockPolicy({ graceMinutes: 1.5 })).toThrow(/whole number at or above zero/);
   });
 });
 

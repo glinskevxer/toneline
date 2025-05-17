@@ -14,7 +14,7 @@ import {
 } from '../../src/ticket/expiry.js';
 import { buildTicket } from '../../src/ticket/record.js';
 import { Calendar } from '../../src/time/calendar.js';
-import { ScheduleError } from '../../src/core/errors.js';
+import { PolicyError } from '../../src/config/policies.js';
 
 const calendar = new Calendar();
 
@@ -43,8 +43,8 @@ describe('lifePolicy', () => {
   });
 
   it('rejects a value that is not a whole day', () => {
-    expect(() => lifePolicy({ markLifeDays: 0 })).toThrow(ScheduleError);
-    expect(() => lifePolicy({ renewalWindowDays: 1.5 })).toThrow(/whole days/);
+    expect(() => lifePolicy({ markLifeDays: 0 })).toThrow(PolicyError);
+    expect(() => lifePolicy({ renewalWindowDays: 1.5 })).toThrow(/whole number of one or more/);
   });
 });
 

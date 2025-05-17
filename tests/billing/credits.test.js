@@ -7,7 +7,7 @@ import {
   creditsByReason,
   worstCredits,
 } from '../../src/billing/credits.js';
-import { BillingError } from '../../src/billing/rates.js';
+import { PolicyError } from '../../src/config/policies.js';
 
 const INVOICE = {
   period: '2024-03',
@@ -38,12 +38,12 @@ describe('creditTerms', () => {
   });
 
   it('rejects a term that is not a number at or above zero', () => {
-    expect(() => creditTerms({ lateShare: -0.1 })).toThrow(BillingError);
+    expect(() => creditTerms({ lateShare: -0.1 })).toThrow(PolicyError);
     expect(() => creditTerms({ graceMinutes: 'some' })).toThrow(/at or above zero/);
   });
 
   it('rejects a cap larger than the invoice', () => {
-    expect(() => creditTerms({ capShare: 1.5 })).toThrow(/more than the whole invoice/);
+    expect(() => creditTerms({ capShare: 1.5 })).toThrow(/cannot be more than one/);
     expect(creditTerms({ capShare: 1 }).capShare).toBe(1);
   });
 });
