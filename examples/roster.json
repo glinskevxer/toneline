@@ -1,0 +1,26 @@
+[
+  {
+    "id": "loc-14",
+    "name": "R Ochoa",
+    "skills": ["gas", "water"],
+    "districts": ["central"],
+    "shift": { "start": "06:30", "end": "15:30" },
+    "dailyCapacity": 8
+  },
+  {
+    "id": "loc-22",
+    "name": "T Whitlow",
+    "skills": ["gas", "water", "electric"],
+    "shift": { "start": "07:00", "end": "17:00" },
+    "dailyCapacity": 6
+  },
+  {
+    "id": "loc-31",
+    "name": "M Beaudry",
+    "skills": ["gas"],
+    "districts": ["north"],
+    "shift": { "start": "07:00", "end": "17:00" },
+    "dailyCapacity": 5,
+    "onCall": true
+  }
+]

@@ -624,3 +624,46 @@ describe('find', () => {
     expect(result.err).toContain('nothing matched');
   });
 });
+
+describe('capacity', () => {
+  const ROSTER = join(examples, 'roster.json');
+
+  it('says whether the day fits', async () => {
+    const result = await invoke(['capacity', '-c', CONFIG, '-f', FEED, '-r', ROSTER]);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain('capacity for');
+    expect(result.out).toContain('the day fits');
+  });
+
+  it('lists who is free', async () => {
+    const result = await invoke(['capacity', '-c', CONFIG, '-f', FEED, '-r', ROSTER]);
+    expect(result.out).toContain('LOC-14');
+    expect(result.out).toContain('LOC-22');
+  });
+
+  it('shows the demand by skill', async () => {
+    const result = await invoke([
+      'capacity',
+      '-c',
+      CONFIG,
+      '-f',
+      FEED,
+      '-r',
+      ROSTER,
+      '-a',
+      '2024-03-15T09:00',
+    ]);
+    expect(result.out).toContain('skill');
+    expect(result.out).toContain('GAS');
+  });
+
+  it('refuses a roster it cannot read', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'toneline-prog-'));
+    const path = join(dir, 'roster.json');
+    writeFileSync(path, JSON.stringify([{ id: 'loc-1' }]));
+    const result = await invoke(['capacity', '-c', CONFIG, '-f', FEED, '-r', path]);
+    expect(result.code).toBe(1);
+    expect(result.err).toContain('ROSTER_INVALID');
+    rmSync(dir, { recursive: true, force: true });
+  });
+});

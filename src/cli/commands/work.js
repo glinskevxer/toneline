@@ -189,4 +189,57 @@ export function registerWorkCommands(program, { writers, setExit }) {
         })
       );
     });
+
+  program
+    .command('capacity')
+    .description('say whether the day fits the roster')
+    .requiredOption('-c, --config <path>', 'path to the configuration file')
+    .requiredOption('-f, --feed <path>', 'path to the transmission feed')
+    .requiredOption('-r, --roster <path>', 'path to the locator roster as json')
+    .option('-a, --at <stamp>', 'the day being planned')
+    .action((opts) => {
+      setExit(
+        tools.runCommand(writers, () => {
+          const { desk } = tools.openDesk(opts.config);
+          const { tickets } = tools.readFeed(opts.feed, { skipBad: true });
+          const roster = tools.buildRoster(tools.readJson(opts.roster));
+          const context = tools.screeningContext(desk);
+          const entries = tickets.map((ticket) => ({
+            ticket,
+            screening: tools.screenTicket(ticket, context),
+          }));
+          const plan = tools.planDay(entries, roster, {
+            date: opts.at ? opts.at.slice(0, 10) : undefined,
+          });
+          writers.write(
+            tools.joinSections([
+              tools.renderHeading(`capacity for ${plan.date ?? 'the day'}`),
+              tools.renderPairs({
+                tickets: plan.demand.tickets,
+                capacity: plan.supply.total,
+                fits: plan.fits,
+              }),
+              tools.renderTable(
+                Object.entries(plan.demand.byType).map(([type, needed]) => ({
+                  skill: type,
+                  needed,
+                  available: plan.supply.byType[type] ?? 0,
+                })),
+                [
+                  { key: 'skill' },
+                  { key: 'needed', align: 'right' },
+                  { key: 'available', align: 'right' },
+                ]
+              ),
+              `${tools.shortfallLines(plan).join('\n')}\n`,
+              tools.renderTable(tools.whoIsFree(roster, { date: plan.date ?? '2024-01-01' }), [
+                { key: 'locatorId', label: 'locator' },
+                { key: 'free', align: 'right' },
+              ]),
+            ])
+          );
+          return plan.fits ? 0 : 0;
+        })
+      );
+    });
 }
