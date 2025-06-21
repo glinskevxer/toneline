@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildBrief, briefHeadline, isQuiet, briefNumbers } from '../../src/reporting/brief.js';
+import {
+  buildBrief,
+  briefHeadline,
+  briefLines,
+  isQuiet,
+  briefNumbers,
+} from '../../src/reporting/brief.js';
 import { openDesk, readFeed } from '../../src/cli/context.js';
 import { buildAssignment } from '../../src/dispatch/assign.js';
 import { buildResponse } from '../../src/response/post.js';
@@ -96,5 +102,74 @@ describe('brief views', () => {
     expect(numbers.open).toBe(4);
     expect(numbers).toHaveProperty('dueWithinTheHour');
     expect(numbers).toHaveProperty('escalations');
+  });
+});
+
+describe('the exceptions on the brief', () => {
+  it('counts every kind of exception', () => {
+    const morning = brief();
+    expect(morning.exceptions).toHaveProperty('escalation');
+    expect(morning.exceptions).toHaveProperty('plant');
+    expect(morning.exceptions.escalation).toBe(morning.escalations.length);
+  });
+
+  it('names the next things to do, worst first', () => {
+    const morning = brief();
+    expect(morning.nextActions.length).toBeGreaterThan(0);
+    expect(morning.nextActions.length).toBeLessThanOrEqual(5);
+    expect(morning.nextActions[0].kind).toBe('escalation');
+  });
+
+  it('reads the compliance records when it is given them', () => {
+    const compliance = [
+      {
+        number: 'B240313000418',
+        status: 'late',
+        minutesLate: 90,
+        answered: true,
+        complete: true,
+      },
+    ];
+    expect(brief({ compliance }).exceptions.compliance).toBe(1);
+    expect(brief().exceptions.compliance).toBe(0);
+  });
+
+  it('agrees with itself about how many escalations there are', () => {
+    const morning = brief();
+    const fromCounts = morning.escalationCounts;
+    const total = Object.values(fromCounts).reduce((sum, count) => sum + count, 0);
+    expect(total).toBe(morning.escalations.length);
+  });
+});
+
+describe('briefLines', () => {
+  it('opens with the headline', () => {
+    expect(briefLines(brief())[0]).toBe(briefHeadline(brief()));
+  });
+
+  it('names what is with nobody and what has breached', () => {
+    const lines = briefLines(brief());
+    expect(lines.some((line) => line.includes('with nobody'))).toBe(true);
+    expect(lines.some((line) => line.startsWith('breached:'))).toBe(true);
+  });
+
+  it('lists the next actions', () => {
+    const lines = briefLines(brief());
+    expect(lines.some((line) => line.includes('escalate to'))).toBe(true);
+  });
+
+  it('mentions damages only when there were some today', () => {
+    const damages = [
+      buildDamage({ id: 'd1', at: '2024-03-15T08:00', facilityType: 'gas', reportedBy: 'x' }),
+    ];
+    expect(briefLines(brief({ damages })).some((line) => line.includes('damages reported'))).toBe(
+      true
+    );
+    expect(briefLines(brief()).some((line) => line.includes('damages reported'))).toBe(false);
+  });
+
+  it('writes a short brief for a quiet morning', () => {
+    const quiet = buildBrief({ desk, tickets: [], at: '2024-03-15T09:00' });
+    expect(briefLines(quiet)).toEqual([briefHeadline(quiet)]);
   });
 });
