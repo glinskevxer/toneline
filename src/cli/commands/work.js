@@ -242,4 +242,46 @@ export function registerWorkCommands(program, { writers, setExit }) {
         })
       );
     });
+
+  program
+    .command('exceptions')
+    .description('everything on the desk that needs a person')
+    .requiredOption('-c, --config <path>', 'path to the configuration file')
+    .requiredOption('-f, --feed <path>', 'path to the transmission feed')
+    .requiredOption('-a, --at <stamp>', 'the moment the list is drawn')
+    .option('-n, --top <count>', 'how many rows to print', '20')
+    .action((opts) => {
+      setExit(
+        tools.runCommand(writers, () => {
+          const { desk } = tools.openDesk(opts.config);
+          const { tickets } = tools.readFeed(opts.feed, { skipBad: true });
+          const context = tools.screeningContext(desk);
+          const open = tools.openTickets(tickets);
+          const entries = open.map((ticket) => ({
+            ticket,
+            screening: tools.screenTicket(ticket, context),
+          }));
+          const report = tools.exceptionReport({
+            tickets: open,
+            entries,
+            network: desk.network,
+            at: opts.at,
+            ...tools.schedulingContext(desk),
+          });
+          writers.write(
+            tools.joinSections([
+              tools.renderHeading(`${report.total} things need a person`),
+              tools.renderPairs(report.counts),
+              tools.renderTable(report.rows.slice(0, Math.max(0, Number(opts.top) || 0)), [
+                { key: 'kind' },
+                { key: 'subject' },
+                { key: 'summary', width: 34 },
+                { key: 'detail', width: 40 },
+              ]),
+            ])
+          );
+          return 0;
+        })
+      );
+    });
 }

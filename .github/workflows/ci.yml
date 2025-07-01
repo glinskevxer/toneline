@@ -115,11 +115,49 @@ jobs:
         run: |
           node bin/toneline.js coverage -c examples/cross-timbers.json \
             -f examples/march-2024.feed --quality
+      - name: exceptions
+        run: |
+          node bin/toneline.js exceptions -c examples/cross-timbers.json \
+            -f examples/march-2024.feed -a 2024-03-15T09:00
+      - name: capacity
+        run: |
+          node bin/toneline.js capacity -c examples/cross-timbers.json \
+            -f examples/march-2024.feed -r examples/roster.json -a 2024-03-15T09:00
+      - name: find
+        run: |
+          node bin/toneline.js find -c examples/cross-timbers.json \
+            -f examples/march-2024.feed -s "nw 23rd" --explain
+      - name: month
+        run: |
+          node bin/toneline.js month -c examples/cross-timbers.json \
+            -f examples/march-2024.feed -p 2024-03 -a 2024-03-20T08:00 \
+            -d examples/damages-2024.csv
+      - name: map
+        run: |
+          node bin/toneline.js map -c examples/cross-timbers.json \
+            -f examples/march-2024.feed -o /tmp/desk.geojson
+      - name: book
+        run: |
+          node bin/toneline.js book -c examples/cross-timbers.json \
+            -f examples/march-2024.feed -j /tmp/journal.json \
+            -a 2024-03-14T08:00 -b ci
       - name: check what was written
         run: |
           test -s /tmp/postings.json
           test -s /tmp/register.csv
+          test -s /tmp/desk.geojson
+          test -s /tmp/journal.json
           head -1 /tmp/register.csv | grep -q '^ticket,type,status'
+          node -e "const j=require('/tmp/journal.json'); if (j.tickets.length !== 4) process.exit(1)"
+          node -e "const g=require('/tmp/desk.geojson'); if (g.type !== 'FeatureCollection') process.exit(1)"
+
+      - name: run it twice and get the same answer
+        run: |
+          node bin/toneline.js screen -c examples/cross-timbers.json \
+            -f examples/march-2024.feed > /tmp/first.txt
+          node bin/toneline.js screen -c examples/cross-timbers.json \
+            -f examples/march-2024.feed > /tmp/second.txt
+          diff /tmp/first.txt /tmp/second.txt
 
   image:
     name: build the container image

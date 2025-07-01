@@ -667,3 +667,42 @@ describe('capacity', () => {
     rmSync(dir, { recursive: true, force: true });
   });
 });
+
+describe('exceptions', () => {
+  it('lists everything that needs a person', async () => {
+    const result = await invoke(['exceptions', '-c', CONFIG, '-f', FEED, '-a', '2024-03-15T09:00']);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain('things need a person');
+    expect(result.out).toContain('escalation');
+  });
+
+  it('counts every kind', async () => {
+    const result = await invoke(['exceptions', '-c', CONFIG, '-f', FEED, '-a', '2024-03-15T09:00']);
+    expect(result.out).toMatch(/plant\s+\d/);
+    expect(result.out).toMatch(/ticket\s+\d/);
+  });
+
+  it('honours the row limit', async () => {
+    const result = await invoke([
+      'exceptions',
+      '-c',
+      CONFIG,
+      '-f',
+      FEED,
+      '-a',
+      '2024-03-15T09:00',
+      '-n',
+      '1',
+    ]);
+    const body = result.out.split('detail')[1] ?? '';
+    const rows = body
+      .split('\n')
+      .filter((line) => /^(escalation|compliance|ticket|plant)\s/.test(line));
+    expect(rows).toHaveLength(1);
+  });
+
+  it('refuses a moment it cannot read', async () => {
+    const result = await invoke(['exceptions', '-c', CONFIG, '-f', FEED, '-a', 'now']);
+    expect(result.code).toBe(1);
+  });
+});

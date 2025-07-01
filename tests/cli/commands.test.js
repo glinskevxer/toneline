@@ -22,7 +22,14 @@ describe('the command groups', () => {
   });
 
   it('registers the work commands', () => {
-    expect(namesFrom(registerWorkCommands)).toEqual(['age', 'queue', 'brief', 'book', 'capacity']);
+    expect(namesFrom(registerWorkCommands)).toEqual([
+      'age',
+      'queue',
+      'brief',
+      'book',
+      'capacity',
+      'exceptions',
+    ]);
   });
 
   it('registers the record commands', () => {
@@ -45,6 +52,7 @@ describe('the whole program', () => {
       'capacity',
       'coverage',
       'damage',
+      'exceptions',
       'find',
       'invoice',
       'map',
