@@ -9,6 +9,7 @@
 
 import { TonelineError } from '../core/errors.js';
 import { AuditTrail } from '../audit/trail.js';
+import { MARKERS, asRecord } from '../core/records.js';
 import { buildAssignment } from '../dispatch/assign.js';
 import { buildDamage } from '../damage/report.js';
 import { TicketStore } from './tickets.js';
@@ -45,14 +46,14 @@ export class DeskBook {
 
   /** Add an assignment. */
   addAssignment(raw) {
-    const assignment = Object.isFrozen(raw) && raw.locatorId ? raw : buildAssignment(raw);
+    const assignment = asRecord(raw, buildAssignment, MARKERS.assignment);
     this.assignments.push(assignment);
     return assignment;
   }
 
   /** Add a damage report. */
   addDamage(raw) {
-    const damage = Object.isFrozen(raw) && raw.facilityType ? raw : buildDamage(raw);
+    const damage = asRecord(raw, buildDamage, MARKERS.damage);
     this.damages.push(damage);
     return damage;
   }

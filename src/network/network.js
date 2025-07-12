@@ -12,6 +12,7 @@ import { FacilityError, buildFacility, facilityBounds, toleranceMetresOf } from 
 import { boundsOf, boundsOverlap, boundsUnion, expandBounds } from '../geo/bbox.js';
 import { ringBounds, ringContains, ringIntersectsPolyline } from '../geo/polygon.js';
 import { pointToPolyline } from '../geo/segment.js';
+import { MARKERS, asRecord } from '../core/records.js';
 
 const DEFAULT_CELL_DEGREES = 0.005;
 
@@ -44,7 +45,7 @@ export class FacilityNetwork {
 
   /** Add one facility, building it first when handed a loose record. */
   add(raw) {
-    const facility = raw && raw.path && Object.isFrozen(raw) ? raw : buildFacility(raw);
+    const facility = asRecord(raw, buildFacility, MARKERS.facility);
     if (this.facilities.has(facility.id)) {
       throw new FacilityError('the network already carries that facility id', { id: facility.id });
     }
@@ -85,8 +86,7 @@ export class FacilityNetwork {
 
   /** Swap a facility for a new version of itself, keeping the index right. */
   replace(facility) {
-    const built =
-      facility && facility.path && Object.isFrozen(facility) ? facility : buildFacility(facility);
+    const built = asRecord(facility, buildFacility, MARKERS.facility);
     this.remove(built.id);
     return this.add(built);
   }

@@ -8,6 +8,7 @@
  */
 
 import { normaliseCode } from '../core/fields.js';
+import { MARKERS, asRecord } from '../core/records.js';
 import { compareStamps, dateOf } from '../time/stamp.js';
 import { buildResponse, sortResponses } from '../response/post.js';
 import { effectiveResponses, standingAnswer } from '../response/amend.js';
@@ -28,7 +29,7 @@ export class ResponseStore {
 
   /** Add a posting, building it first when handed a loose record. */
   put(raw) {
-    const response = Object.isFrozen(raw) && raw.key ? raw : buildResponse(raw);
+    const response = asRecord(raw, buildResponse, MARKERS.response);
     const ticket = this.byTicket.get(response.number) ?? [];
     ticket.push(response);
     this.byTicket.set(response.number, ticket);

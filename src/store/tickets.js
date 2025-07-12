@@ -9,6 +9,7 @@
 
 import { TicketError } from '../core/errors.js';
 import { normaliseCode } from '../core/fields.js';
+import { MARKERS, asRecord } from '../core/records.js';
 import { compareStamps, dateOf } from '../time/stamp.js';
 import { buildTicket, siteKey } from '../ticket/record.js';
 
@@ -34,7 +35,7 @@ export class TicketStore {
 
   /** Add a ticket, building it first when handed a loose record. */
   put(raw) {
-    const ticket = Object.isFrozen(raw) && raw.base ? raw : buildTicket(raw);
+    const ticket = asRecord(raw, buildTicket, MARKERS.ticket);
     const list = this.versions.get(ticket.base) ?? [];
     const existing = list.findIndex((held) => held.revision === ticket.revision);
     if (existing >= 0) list[existing] = ticket;
