@@ -38,5 +38,6 @@ export {
 export { damageSummary, topCounts } from '../../damage/stats.js';
 export { coverageReport, suspectPlaces } from '../../screening/coverage.js';
 export { checkNetwork, networkProfile } from '../../network/quality.js';
+export { tuningAdvice } from '../../network/tuning.js';
 export { openBookFile, saveBookFile } from '../../store/file.js';
 export { deskCollection, networkCollection, ticketCollection } from '../../io/geojson.js';

@@ -5,6 +5,7 @@ import {
   schedulingContext,
   expiryContext,
   loadFacilities,
+  indexCellDegrees,
 } from '../../src/config/load.js';
 import { Calendar } from '../../src/time/calendar.js';
 import { WorkSchedule } from '../../src/time/workhours.js';
@@ -170,5 +171,30 @@ describe('holiday presets in a configuration', () => {
     const desk = loadDesk({ ...CONFIG, calendar: { weekend: ['sunday'] } });
     expect(desk.calendar.isBusinessDay('2024-07-04')).toBe(true);
     expect(desk.calendar.isBusinessDay('2024-03-16')).toBe(true);
+  });
+});
+
+describe('the index size', () => {
+  it('sizes the grid from the plant it was given', () => {
+    const dense = loadDesk(CONFIG, { facilities: FACILITIES });
+    expect(indexCellDegrees(dense)).toBeGreaterThan(0);
+    expect(dense.network.stats().cellDegrees).toBe(indexCellDegrees(dense));
+  });
+
+  it('takes a size the configuration sets', () => {
+    const desk = loadDesk({ ...CONFIG, index: { cellDegrees: 0.02 } }, { facilities: FACILITIES });
+    expect(indexCellDegrees(desk)).toBe(0.02);
+  });
+
+  it('sizes an empty network without falling over', () => {
+    expect(indexCellDegrees(loadDesk(CONFIG))).toBeGreaterThan(0);
+  });
+
+  it('finds the same plant whichever size it picked', () => {
+    const tuned = loadDesk(CONFIG, { facilities: FACILITIES });
+    const fixed = loadDesk({ ...CONFIG, index: { cellDegrees: 0.05 } }, { facilities: FACILITIES });
+    expect(tuned.network.near(A, 400).map((hit) => hit.facility.id)).toEqual(
+      fixed.network.near(A, 400).map((hit) => hit.facility.id)
+    );
   });
 });

@@ -12,6 +12,8 @@ import { holidayList } from '../time/holidays.js';
 import { WorkSchedule } from '../time/workhours.js';
 import { buildDistricts } from '../network/district.js';
 import { buildNetwork } from '../network/network.js';
+import { recommendCellDegrees } from '../network/tuning.js';
+import { buildFacility } from '../network/facility.js';
 import { lifePolicy } from '../ticket/expiry.js';
 import { sitePolicy } from '../ticket/site.js';
 import { screenPolicy } from '../screening/screen.js';
@@ -53,7 +55,13 @@ export function loadDesk(config, options = {}) {
     hours: config.hours ?? DEFAULT_HOURS,
   });
   const districts = buildDistricts(config.districts ?? []);
-  const network = buildNetwork(facilities);
+  // The index is sized from the plant rather than from a standing default,
+  // because a rural network and a city block want cells an order of magnitude
+  // apart and nobody was ever going to set that by hand.
+  const built = facilities.map((facility) => buildFacility(facility));
+  const network = buildNetwork(built, {
+    cellDegrees: config.index?.cellDegrees ?? recommendCellDegrees(built),
+  });
 
   return Object.freeze({
     operator: Object.freeze({ ...config.operator }),
@@ -70,6 +78,11 @@ export function loadDesk(config, options = {}) {
     }),
     warnings,
   });
+}
+
+/** The cell size a desk ended up with, which a tuning report reads. */
+export function indexCellDegrees(desk) {
+  return desk.network.cellDegrees;
 }
 
 /**

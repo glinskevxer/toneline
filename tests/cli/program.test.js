@@ -706,3 +706,18 @@ describe('exceptions', () => {
     expect(result.code).toBe(1);
   });
 });
+
+describe('the grid advice on the coverage report', () => {
+  it('says how the index is sized', async () => {
+    const result = await invoke(['coverage', '-c', CONFIG, '-f', FEED, '--quality']);
+    expect(result.code).toBe(0);
+    expect(result.out).toMatch(/cellDegrees\s+[\d.]+/);
+    expect(result.out).toMatch(/recommended\s+[\d.]+/);
+    expect(result.out).toContain('grid');
+  });
+
+  it('leaves the advice out unless it was asked for', async () => {
+    const result = await invoke(['coverage', '-c', CONFIG, '-f', FEED]);
+    expect(result.out).not.toContain('cellDegrees');
+  });
+});

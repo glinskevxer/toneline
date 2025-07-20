@@ -212,3 +212,24 @@ describe('holiday presets in the schema', () => {
     ).toContain('calendar.drop must be a list');
   });
 });
+
+describe('the index settings', () => {
+  it('accepts a cell size', () => {
+    expect(validateConfig({ ...GOOD, index: { cellDegrees: 0.01 } }).errors).toEqual([]);
+  });
+
+  it('rejects a cell size that is not a number above zero', () => {
+    expect(validateConfig({ ...GOOD, index: { cellDegrees: 0 } }).errors).toContain(
+      'index.cellDegrees must be a number above zero'
+    );
+    expect(validateConfig({ ...GOOD, index: { cellDegrees: 'wide' } }).errors).toHaveLength(1);
+  });
+
+  it('rejects an index that is not an object', () => {
+    expect(validateConfig({ ...GOOD, index: 'fine' }).errors).toContain('index must be an object');
+  });
+
+  it('says nothing when there is no index section', () => {
+    expect(validateConfig(GOOD).errors).toEqual([]);
+  });
+});

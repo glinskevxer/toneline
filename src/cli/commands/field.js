@@ -105,7 +105,14 @@ export function registerFieldCommands(program, { writers, setExit }) {
           ];
           if (opts.quality) {
             const problems = tools.checkNetwork(desk.network);
+            const advice = tools.tuningAdvice(desk.network);
             sections.push(
+              tools.renderPairs({
+                cellDegrees: advice.cellDegrees,
+                recommended: advice.recommended,
+                averagePerCell: advice.averagePerCell,
+                grid: advice.advice,
+              }),
               tools.renderPairs(tools.networkProfile(desk.network).byType),
               tools.renderTable(
                 problems.problems.map((entry) => ({

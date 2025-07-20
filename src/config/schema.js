@@ -37,6 +37,16 @@ export function validateConfig(config) {
   checkDistricts(config.districts, errors, warnings);
   checkPolicies(config.policies, errors);
 
+  if (config.index !== undefined) {
+    if (typeof config.index !== 'object' || config.index === null) {
+      errors.push('index must be an object');
+    } else if (
+      config.index.cellDegrees !== undefined &&
+      (typeof config.index.cellDegrees !== 'number' || config.index.cellDegrees <= 0)
+    ) {
+      errors.push('index.cellDegrees must be a number above zero');
+    }
+  }
   if (isBlank(config.facilities) && !Array.isArray(config.facilities)) {
     warnings.push('no facilities were named, so every ticket will screen as clear');
   }
