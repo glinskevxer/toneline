@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
-import { makeWriters, openDesk, readFeed, runCommand } from '../../src/cli/context.js';
+import { formatOf, makeWriters, openDesk, readFeed, runCommand } from '../../src/cli/context.js';
 import { ConfigError } from '../../src/core/errors.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -131,5 +131,51 @@ describe('runCommand', () => {
       })
     ).toBe(1);
     expect(err.lines[0]).toBe('INTERNAL: not a function\n');
+  });
+});
+
+describe('feed formats', () => {
+  it('takes the format from the file name', () => {
+    expect(formatOf('march.feed')).toBe('transmission');
+    expect(formatOf('/tmp/MARCH.CSV')).toBe('csv');
+    expect(formatOf('march.txt')).toBe('transmission');
+  });
+
+  it('reads a csv feed', () => {
+    writeFileSync(
+      join(dir, 'feed.csv'),
+      [
+        'ticket,transmission,taken,address',
+        'B240315000420,NORMAL,03/15/2024 07:42,1420 NW 23RD ST',
+      ].join('\n')
+    );
+    const { tickets } = readFeed(join(dir, 'feed.csv'));
+    expect(tickets).toHaveLength(1);
+    expect(tickets[0].number).toBe('B240315000420');
+  });
+
+  it('can be told the format when the name does not say', () => {
+    writeFileSync(
+      join(dir, 'feed.dat'),
+      [
+        'ticket,transmission,taken,address',
+        'B240315000420,NORMAL,03/15/2024 07:42,1420 NW 23RD ST',
+      ].join('\n')
+    );
+    expect(readFeed(join(dir, 'feed.dat'), { format: 'csv' }).tickets).toHaveLength(1);
+  });
+
+  it('refuses a format it does not read', () => {
+    writeFileSync(join(dir, 'feed.dat'), 'anything');
+    expect(() => readFeed(join(dir, 'feed.dat'), { format: 'xml' })).toThrow(/not a feed format/);
+  });
+
+  it('collects failures out of a csv feed too', () => {
+    writeFileSync(
+      join(dir, 'bad.csv'),
+      ['ticket,transmission,taken', 'BAD,NORMAL,never'].join('\n')
+    );
+    expect(() => readFeed(join(dir, 'bad.csv'))).toThrow();
+    expect(readFeed(join(dir, 'bad.csv'), { skipBad: true }).failures).toHaveLength(1);
   });
 });

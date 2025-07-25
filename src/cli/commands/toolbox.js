@@ -6,7 +6,7 @@
  * here rather than being retyped four times.
  */
 
-export { makeWriters, openDesk, readFeed, runCommand } from '../context.js';
+export { formatOf, makeWriters, openDesk, readFeed, runCommand } from '../context.js';
 export { expiryContext, schedulingContext, screeningContext } from '../../config/load.js';
 export { screenTicket } from '../../screening/screen.js';
 export { search } from '../../ticket/search.js';

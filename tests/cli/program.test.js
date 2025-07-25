@@ -721,3 +721,33 @@ describe('the grid advice on the coverage report', () => {
     expect(result.out).not.toContain('cellDegrees');
   });
 });
+
+describe('a csv feed on the command line', () => {
+  it('screens a csv feed as readily as a transmission', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'toneline-prog-'));
+    const path = join(dir, 'feed.csv');
+    writeFileSync(
+      path,
+      [
+        'ticket,transmission,taken,place,address,extent,members,grids',
+        'B240315000420,NORMAL,03/15/2024 07:42,OKLAHOMA CITY,1420 NW 23RD ST,east 20 feet,CTG01,"35.4676,-97.5150"',
+      ].join('\n')
+    );
+    const result = await invoke(['screen', '-c', CONFIG, '-f', path]);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain('B240315000420');
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('can be told the format when the name does not say', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'toneline-prog-'));
+    const path = join(dir, 'feed.dat');
+    writeFileSync(
+      path,
+      ['ticket,transmission,taken,address', 'B240315000420,NORMAL,03/15/2024 07:42,x'].join('\n')
+    );
+    const result = await invoke(['screen', '-c', CONFIG, '-f', path, '--format', 'csv']);
+    expect(result.code).toBe(0);
+    rmSync(dir, { recursive: true, force: true });
+  });
+});

@@ -46,11 +46,15 @@ export function registerDeskCommands(program, { writers, setExit }) {
     .requiredOption('-c, --config <path>', 'path to the configuration file')
     .requiredOption('-f, --feed <path>', 'path to the transmission feed')
     .option('--skip-bad', 'carry on past blocks that will not read', false)
+    .option('--format <name>', 'transmission or csv, taken from the file name by default')
     .action((opts) => {
       setExit(
         tools.runCommand(writers, () => {
           const { desk } = tools.openDesk(opts.config);
-          const { tickets, failures } = tools.readFeed(opts.feed, { skipBad: opts.skipBad });
+          const { tickets, failures } = tools.readFeed(opts.feed, {
+            skipBad: opts.skipBad,
+            format: opts.format ?? null,
+          });
           const context = tools.screeningContext(desk);
           const rows = tickets.map((ticket) => {
             const result = tools.screenTicket(ticket, context);

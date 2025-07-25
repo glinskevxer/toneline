@@ -7,11 +7,12 @@
  * to the console, which is what makes the commands testable.
  */
 
-import { asTonelineError } from '../core/errors.js';
+import { FeedParseError, asTonelineError } from '../core/errors.js';
 import { readConfigWithFacilities, readText } from '../io/files.js';
 import { readFacilityCsv } from '../io/facilities.js';
 import { loadDesk } from '../config/load.js';
 import { parseTicketBatch } from '../ticket/parse.js';
+import { readTicketCsv } from '../io/tickets.js';
 
 /** Build the writers a command prints through. */
 export function makeWriters({ out = process.stdout, err = process.stderr } = {}) {
@@ -31,9 +32,31 @@ export function openDesk(configPath, options = {}) {
   return { desk, config, facilitiesPath };
 }
 
-/** Read a feed file into tickets, keeping any blocks that would not read. */
-export function readFeed(feedPath, { skipBad = false } = {}) {
-  return parseTicketBatch(readText(feedPath), { skipBad });
+/**
+ * Read a feed file into tickets, keeping any blocks that would not read.
+ *
+ * The format is taken from the file name rather than sniffed, because a centre
+ * that starts sending csv sends it with a csv name, and guessing at content is
+ * how a transmission with a comma in an address gets read as a spreadsheet.
+ */
+export function readFeed(feedPath, { skipBad = false, format = null } = {}) {
+  const text = readText(feedPath);
+  const chosen = format ?? formatOf(feedPath);
+  if (chosen === 'csv') {
+    return readTicketCsv(text, { skipBad });
+  }
+  if (chosen !== 'transmission') {
+    throw new FeedParseError('that is not a feed format this desk reads', {
+      format: chosen,
+      known: ['transmission', 'csv'],
+    });
+  }
+  return parseTicketBatch(text, { skipBad });
+}
+
+/** The format a feed file name implies. */
+export function formatOf(feedPath) {
+  return String(feedPath).toLowerCase().endsWith('.csv') ? 'csv' : 'transmission';
 }
 
 /**
