@@ -40,8 +40,33 @@ node bin/toneline.js brief    -c examples/cross-timbers.json -f examples/march-2
 ```
 
 `examples/` holds a worked desk: an operator configuration, a facility extract,
-a feed of four tickets and a damage extract. Every command in the list above
+a feed of four tickets, a damage extract and a locator roster. Every command
 runs against it, and so does CI.
+
+## The commands
+
+| command      | what it does                                                  |
+| ------------ | ------------------------------------------------------------- |
+| `validate`   | check a configuration and its facility extract                |
+| `screen`     | screen a feed against the network and recommend a code        |
+| `respond`    | answer a feed and write the postings out                      |
+| `find`       | find a ticket from part of a number, a street or an excavator |
+| `age`        | show the open work against its response deadlines             |
+| `queue`      | order the open work the way it should be driven               |
+| `brief`      | the morning brief for the supervisor                          |
+| `exceptions` | everything on the desk that needs a person                    |
+| `capacity`   | say whether the day fits the roster                           |
+| `book`       | post a day of work into the desk journal                      |
+| `register`   | build the ticket register the regulator asks for              |
+| `invoice`    | build the monthly locating invoice                            |
+| `month`      | assemble the monthly pack                                     |
+| `damage`     | read the damage extract and report on it                      |
+| `coverage`   | plant that never comes up, and tickets that are not ours      |
+| `map`        | write the network and the tickets out as geojson              |
+
+Every command takes `-c` for the configuration. Most take `-f` for a feed, which
+may be either the centre's transmission format or a csv export: the format is
+taken from the file name, and `--format` overrides it.
 
 ## How it is laid out
 

@@ -47,6 +47,25 @@ export function buildProgram(options = {}) {
 }
 
 /**
+ * The commands the program carries, with what each one needs.
+ *
+ * The help text is commander's business; this is for anything that needs the
+ * list as data, which is the readme check and any future shell completion.
+ */
+export function commandSummary() {
+  return buildProgram()
+    .commands.map((command) => ({
+      name: command.name(),
+      description: command.description(),
+      // `option.required` means the option takes a value, not that the option
+      // itself has to be given. `mandatory` is the one that means required.
+      required: command.options.filter((option) => option.mandatory).map((option) => option.long),
+      optional: command.options.filter((option) => !option.mandatory).map((option) => option.long),
+    }))
+    .sort((left, right) => left.name.localeCompare(right.name));
+}
+
+/**
  * Run the program against an argument list.
  *
  * @returns {Promise<number>} the exit code

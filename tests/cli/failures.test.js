@@ -124,7 +124,7 @@ describe('the program itself', () => {
 
   it('gives every command at least one required option', () => {
     for (const command of buildProgram().commands) {
-      const required = command.options.filter((option) => option.required || option.mandatory);
+      const required = command.options.filter((option) => option.mandatory);
       expect(required.length, command.name()).toBeGreaterThan(0);
     }
   });
