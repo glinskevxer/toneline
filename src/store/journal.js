@@ -14,6 +14,7 @@ import { buildResponse } from '../response/post.js';
 import { buildAssignment } from '../dispatch/assign.js';
 import { buildDamage } from '../damage/report.js';
 import { auditEntry } from '../audit/trail.js';
+import { GENESIS, chainHead } from '../audit/chain.js';
 
 /** The shape version this build writes and can read. */
 export const JOURNAL_VERSION = 1;
@@ -42,6 +43,7 @@ export function emptyJournal() {
     assignments: [],
     damages: [],
     audit: [],
+    auditHead: GENESIS,
   };
 }
 
@@ -79,6 +81,19 @@ export function readJournal(raw) {
       }
     });
   }
+  const head = chainHead(journal.audit);
+  // A journal that carries a head digest has to still agree with it. One that
+  // does not carry one is from before the chain existed and is taken as it is,
+  // because refusing to load an operator's own history would be worse than
+  // saying nothing about it.
+  if (raw.auditHead !== undefined && raw.auditHead !== head) {
+    throw new JournalError('the audit trail does not match the digest it was written with', {
+      expected: raw.auditHead,
+      found: head,
+      entries: journal.audit.length,
+    });
+  }
+  journal.auditHead = head;
   return deepFreeze(journal);
 }
 
@@ -88,6 +103,7 @@ export function writeJournal(journal) {
   for (const section of SECTIONS) {
     out[section.key] = (journal[section.key] ?? []).map((record) => ({ ...record }));
   }
+  out.auditHead = chainHead(out.audit.map(auditEntry));
   return out;
 }
 
@@ -98,6 +114,11 @@ export function appendToJournal(journal, additions) {
     next[section.key] = [...(journal[section.key] ?? []), ...(additions[section.key] ?? [])];
   }
   return readJournal(writeJournal(next));
+}
+
+/** The digest the journal's audit trail seals to. */
+export function journalHead(journal) {
+  return journal.auditHead ?? chainHead(journal.audit ?? []);
 }
 
 /** How many records the journal holds in each section. */

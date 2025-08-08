@@ -14,7 +14,8 @@ import { buildAssignment } from '../dispatch/assign.js';
 import { buildDamage } from '../damage/report.js';
 import { TicketStore } from './tickets.js';
 import { ResponseStore } from './responses.js';
-import { emptyJournal, journalCounts, readJournal, writeJournal } from './journal.js';
+import { emptyJournal, journalCounts, journalHead, readJournal, writeJournal } from './journal.js';
+import { chainHead, verifyChain, chain } from '../audit/chain.js';
 
 /** Raised when the book is asked for something it does not hold. */
 export class BookError extends TonelineError {
@@ -85,6 +86,26 @@ export class DeskBook {
     return this.tickets.has(number);
   }
 
+  /**
+   * The digest the book's audit trail seals to.
+   *
+   * Two books with the same head hold the same trail, which is what makes it
+   * worth writing down: a copy taken off the machine can be compared with the
+   * original without reading either of them.
+   */
+  head() {
+    return chainHead(this.trail.sorted());
+  }
+
+  /**
+   * Check the trail against itself.
+   *
+   * @returns {{sound: boolean, brokenAt: number|null, reason: string|null}}
+   */
+  verify() {
+    return verifyChain(chain(this.trail.sorted()));
+  }
+
   /** How much of everything the book holds. */
   counts() {
     return {
@@ -112,6 +133,11 @@ export class DeskBook {
 /** Open a book from a journal read off disk. */
 export function openBook(journal) {
   return new DeskBook(journal ?? emptyJournal());
+}
+
+/** The digest a journal seals to, without opening a book on it. */
+export function peekHead(journal) {
+  return journalHead(readJournal(journal));
 }
 
 /** How many records a journal holds, without opening a book on it. */

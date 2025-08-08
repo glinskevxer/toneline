@@ -8,7 +8,9 @@ import {
   appendToJournal,
   journalCounts,
   journalForTicket,
+  journalHead,
 } from '../../src/store/journal.js';
+import { GENESIS } from '../../src/audit/chain.js';
 
 const TICKET = {
   number: 'B240315000420',
@@ -130,6 +132,7 @@ describe('writeJournal', () => {
     expect(Object.keys(writeJournal(emptyJournal())).sort()).toEqual([
       'assignments',
       'audit',
+      'auditHead',
       'damages',
       'responses',
       'tickets',
@@ -175,5 +178,48 @@ describe('journalForTicket', () => {
     const found = journalForTicket(readJournal(full()), 'B240315000999');
     expect(found.tickets).toEqual([]);
     expect(found.damages).toEqual([]);
+  });
+});
+
+describe('the audit digest on a journal', () => {
+  it('seals an empty trail to the genesis digest', () => {
+    expect(journalHead(readJournal(emptyJournal()))).toBe(GENESIS);
+  });
+
+  it('changes when an entry is added', () => {
+    const before = journalHead(readJournal(emptyJournal()));
+    expect(journalHead(readJournal(full()))).not.toBe(before);
+  });
+
+  it('survives a round trip', () => {
+    const journal = readJournal(full());
+    expect(journalHead(readJournal(writeJournal(journal)))).toBe(journalHead(journal));
+  });
+
+  it('refuses a journal whose trail no longer matches its digest', () => {
+    const written = writeJournal(readJournal(full()));
+    written.audit[0] = { ...written.audit[0], by: 'somebody else' };
+    try {
+      readJournal(written);
+      throw new Error('should have thrown');
+    } catch (err) {
+      expect(err).toBeInstanceOf(JournalError);
+      expect(err.message).toMatch(/does not match the digest/);
+      expect(err.details.entries).toBe(1);
+    }
+  });
+
+  it('refuses a journal with an entry quietly dropped', () => {
+    const written = writeJournal(
+      readJournal({ ...full(), audit: [AUDIT, { ...AUDIT, at: '2024-03-15T09:00' }] })
+    );
+    written.audit = written.audit.slice(1);
+    expect(() => readJournal(written)).toThrow(/does not match the digest/);
+  });
+
+  it('takes an older journal that carries no digest at all', () => {
+    const written = writeJournal(readJournal(full()));
+    delete written.auditHead;
+    expect(readJournal(written).audit).toHaveLength(1);
   });
 });

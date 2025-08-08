@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BookError, DeskBook, openBook, peekJournal } from '../../src/store/book.js';
+import { BookError, DeskBook, openBook, peekHead, peekJournal } from '../../src/store/book.js';
 import { JOURNAL_VERSION, emptyJournal } from '../../src/store/journal.js';
 
 const TICKET = {
@@ -155,5 +155,41 @@ describe('toJournal', () => {
 
   it('writes an empty book as an empty journal', () => {
     expect(peekJournal(new DeskBook().toJournal())).toEqual(peekJournal(emptyJournal()));
+  });
+});
+
+describe('the sealed trail', () => {
+  it('seals an empty book to the genesis digest', () => {
+    expect(new DeskBook().head()).toMatch(/^0{64}$/);
+  });
+
+  it('changes the head when a line is written', () => {
+    const book = new DeskBook();
+    const before = book.head();
+    book.note(AUDIT);
+    expect(book.head()).not.toBe(before);
+  });
+
+  it('agrees with the journal it writes', () => {
+    const book = openBook(full());
+    expect(peekHead(book.toJournal())).toBe(book.head());
+  });
+
+  it('verifies its own trail', () => {
+    const book = openBook(full());
+    expect(book.verify()).toEqual({ sound: true, brokenAt: null, reason: null });
+  });
+
+  it('gives two books with the same trail the same head', () => {
+    const first = openBook(full());
+    const second = openBook(first.toJournal());
+    expect(second.head()).toBe(first.head());
+  });
+
+  it('gives two books with different trails different heads', () => {
+    const first = openBook(full());
+    const second = openBook(full());
+    second.note({ ...AUDIT, at: '2024-03-15T09:00', action: 'closed' });
+    expect(second.head()).not.toBe(first.head());
   });
 });
