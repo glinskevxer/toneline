@@ -176,6 +176,7 @@ export function registerWorkCommands(program, { writers, setExit }) {
                 excavations: `${before.excavations} to ${after.excavations}`,
                 responses: `${before.responses} to ${after.responses}`,
                 audit: `${before.audit} to ${after.audit}`,
+                trail: book.verify().sound ? 'sound' : 'broken',
               }),
             ])
           );
@@ -185,6 +186,7 @@ export function registerWorkCommands(program, { writers, setExit }) {
           }
           const path = tools.saveBookFile(opts.journal, book);
           writers.line(`wrote the journal to ${path}`);
+          writers.line(`the trail seals to ${book.head()}`);
           return 0;
         })
       );

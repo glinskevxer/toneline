@@ -1,6 +1,6 @@
 {
   "name": "toneline",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "One call locate ticket handling for underground facility operators",
   "type": "module",

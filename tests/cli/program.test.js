@@ -751,3 +751,57 @@ describe('a csv feed on the command line', () => {
     rmSync(dir, { recursive: true, force: true });
   });
 });
+
+describe('the sealed journal on the book command', () => {
+  it('says the trail is sound and prints the seal', async () => {
+    const path = join(mkdtempSync(join(tmpdir(), 'toneline-seal-')), 'journal.json');
+    const result = await invoke([
+      'book',
+      '-c',
+      CONFIG,
+      '-f',
+      FEED,
+      '-j',
+      path,
+      '-a',
+      '2024-03-14T08:00',
+      '-b',
+      'kmartel',
+    ]);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain('trail');
+    expect(result.out).toContain('sound');
+    expect(result.out).toMatch(/seals to [0-9a-f]{64}/);
+    rmSync(dirname(path), { recursive: true, force: true });
+  });
+
+  it('seals the same way twice for the same day', async () => {
+    const first = join(mkdtempSync(join(tmpdir(), 'toneline-seal-')), 'a.json');
+    const second = join(mkdtempSync(join(tmpdir(), 'toneline-seal-')), 'b.json');
+    const args = (path) => [
+      'book',
+      '-c',
+      CONFIG,
+      '-f',
+      FEED,
+      '-j',
+      path,
+      '-a',
+      '2024-03-14T08:00',
+      '-b',
+      'kmartel',
+    ];
+    const one = await invoke(args(first));
+    const two = await invoke(args(second));
+    const seal = (text) => /seals to ([0-9a-f]{64})/.exec(text)[1];
+    expect(seal(two.out)).toBe(seal(one.out));
+    rmSync(dirname(first), { recursive: true, force: true });
+    rmSync(dirname(second), { recursive: true, force: true });
+  });
+
+  it('reports the version the package says', async () => {
+    const result = await invoke(['--version']);
+    expect(result.code).toBe(0);
+    expect(result.out.trim()).toBe('1.0.0');
+  });
+});

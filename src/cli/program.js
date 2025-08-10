@@ -30,7 +30,7 @@ export function buildProgram(options = {}) {
   program
     .name('toneline')
     .description('one call locate ticket handling for underground facility operators')
-    .version('0.1.0')
+    .version('1.0.0')
     .configureOutput({
       writeOut: (text) => writers.write(text),
       writeErr: (text) => writers.warn(text.replace(/\n$/, '')),

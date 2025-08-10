@@ -141,6 +141,21 @@ jobs:
           node bin/toneline.js book -c examples/cross-timbers.json \
             -f examples/march-2024.feed -j /tmp/journal.json \
             -a 2024-03-14T08:00 -b ci
+      - name: the journal seals the same way twice
+        run: |
+          node bin/toneline.js book -c examples/cross-timbers.json \
+            -f examples/march-2024.feed -j /tmp/seal-a.json \
+            -a 2024-03-14T08:00 -b ci | grep -o 'seals to [0-9a-f]*' > /tmp/seal-a.txt
+          node bin/toneline.js book -c examples/cross-timbers.json \
+            -f examples/march-2024.feed -j /tmp/seal-b.json \
+            -a 2024-03-14T08:00 -b ci | grep -o 'seals to [0-9a-f]*' > /tmp/seal-b.txt
+          diff /tmp/seal-a.txt /tmp/seal-b.txt
+          test -s /tmp/seal-a.txt
+
+      - name: the version on the command line matches the package
+        run: |
+          test "$(node bin/toneline.js --version)" = "$(node -p "require('./package.json').version")"
+
       - name: check what was written
         run: |
           test -s /tmp/postings.json
