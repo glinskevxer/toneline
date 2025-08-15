@@ -163,8 +163,21 @@ jobs:
           test -s /tmp/desk.geojson
           test -s /tmp/journal.json
           head -1 /tmp/register.csv | grep -q '^ticket,type,status'
-          node -e "const j=require('/tmp/journal.json'); if (j.tickets.length !== 4) process.exit(1)"
-          node -e "const g=require('/tmp/desk.geojson'); if (g.type !== 'FeatureCollection') process.exit(1)"
+          # Read these rather than requiring them. The commonjs loader picks its
+          # parser by file extension, so `require` on a .geojson file tries to
+          # run it as javascript and dies on the first colon.
+          node -e "
+            const { readFileSync } = require('node:fs');
+            const read = (path) => JSON.parse(readFileSync(path, 'utf8'));
+            const journal = read('/tmp/journal.json');
+            const map = read('/tmp/desk.geojson');
+            const postings = read('/tmp/postings.json');
+            if (journal.tickets.length !== 4) throw new Error('journal holds ' + journal.tickets.length + ' tickets');
+            if (!/^[0-9a-f]{64}$/.test(journal.auditHead)) throw new Error('journal carries no seal');
+            if (map.type !== 'FeatureCollection') throw new Error('map is a ' + map.type);
+            if (map.features.length < 10) throw new Error('map holds ' + map.features.length + ' features');
+            if (postings.length < 4) throw new Error('only ' + postings.length + ' postings');
+          "
 
       - name: run it twice and get the same answer
         run: |
